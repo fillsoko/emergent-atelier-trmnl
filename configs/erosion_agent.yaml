@@ -1,0 +1,11 @@
+name: erosion
+role: eroder
+algorithm: erosion
+influence_radius: 100
+pixel_budget: 400
+scheduling_weight: 3.0
+enabled: true
+random_seed: 13
+params:
+  isolation_threshold: 2
+  mode: erode

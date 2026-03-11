@@ -1,0 +1,11 @@
+name: edge-tracer
+role: detail-artist
+algorithm: edge_tracer
+influence_radius: 120
+pixel_budget: 600
+scheduling_weight: 2.0
+enabled: true
+random_seed: 7
+params:
+  mode: reinforce
+  threshold: 3

@@ -1,0 +1,11 @@
+name: noise-dense
+role: pattern-generator
+algorithm: noise
+influence_radius: 60
+pixel_budget: 1200
+scheduling_weight: 1.5
+enabled: true
+random_seed: 99
+params:
+  density: 0.25
+  value: white

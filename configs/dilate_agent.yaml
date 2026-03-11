@@ -1,0 +1,11 @@
+name: dilator
+role: pattern-generator
+algorithm: erosion
+influence_radius: 90
+pixel_budget: 500
+scheduling_weight: 2.5
+enabled: true
+random_seed: 55
+params:
+  isolation_threshold: 3
+  mode: dilate

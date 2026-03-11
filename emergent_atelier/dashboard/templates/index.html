@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emergent Atelier — Dashboard</title>
+  <style>
+    :root {
+      --ink: #0d0d0d;
+      --paper: #f5f0e8;
+      --mid: #888;
+      --accent: #222;
+      --border: #ccc;
+      --radius: 4px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--ink);
+      color: var(--paper);
+      font-family: 'Space Mono', 'Courier New', monospace;
+      font-size: 13px;
+      min-height: 100vh;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      border-bottom: 1px solid #333;
+    }
+    header h1 { font-size: 18px; letter-spacing: 0.08em; }
+    header .badge {
+      font-size: 10px;
+      background: #333;
+      padding: 2px 8px;
+      border-radius: 2px;
+      color: var(--mid);
+      letter-spacing: 0.12em;
+    }
+    .cycle-info {
+      margin-left: auto;
+      color: var(--mid);
+      font-size: 11px;
+    }
+
+    main { padding: 24px; display: grid; gap: 24px; }
+
+    /* Canvas panel */
+    .canvas-panel {
+      display: grid;
+      grid-template-columns: 1fr 240px;
+      gap: 16px;
+    }
+    .canvas-wrap {
+      border: 1px solid #333;
+      background: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 280px;
+      position: relative;
+    }
+    .canvas-wrap img {
+      max-width: 100%;
+      image-rendering: pixelated;
+      display: block;
+    }
+    .canvas-label {
+      position: absolute;
+      bottom: 8px;
+      right: 10px;
+      font-size: 10px;
+      color: #555;
+    }
+
+    /* Agents panel */
+    .agents-panel { display: flex; flex-direction: column; gap: 8px; }
+    .agents-panel h3 {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--mid);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .agent-card {
+      background: #181818;
+      border: 1px solid #333;
+      border-radius: var(--radius);
+      padding: 10px 12px;
+    }
+    .agent-card .name { font-size: 12px; font-weight: bold; }
+    .agent-card .role { font-size: 10px; color: var(--mid); margin-top: 2px; }
+    .agent-card .status {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #555;
+      margin-right: 6px;
+    }
+    .agent-card.enabled .status { background: #4ade80; }
+
+    /* Filmstrip */
+    .filmstrip-section h3 {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--mid);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .filmstrip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    .filmstrip::-webkit-scrollbar { height: 4px; }
+    .filmstrip::-webkit-scrollbar-thumb { background: #333; }
+    .strip-frame {
+      flex-shrink: 0;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .strip-frame:hover { border-color: #666; }
+    .strip-frame img {
+      display: block;
+      width: 160px;
+      height: 96px;
+      image-rendering: pixelated;
+    }
+    .strip-frame .meta {
+      padding: 4px 8px;
+      font-size: 10px;
+      color: var(--mid);
+      white-space: nowrap;
+    }
+    .strip-frame .delta { color: #aaa; }
+
+    /* Controls bar */
+    .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    button {
+      background: #222;
+      border: 1px solid #444;
+      color: var(--paper);
+      padding: 6px 16px;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: var(--radius);
+      letter-spacing: 0.05em;
+    }
+    button:hover { background: #333; }
+    button:active { background: #111; }
+    .status-msg { color: var(--mid); font-size: 11px; margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Emergent Atelier</h1>
+    <span class="badge">v0.1.0</span>
+    <div class="cycle-info" id="cycle-info">cycle —</div>
+  </header>
+
+  <main>
+    <div class="canvas-panel">
+      <div class="canvas-wrap">
+        <img id="live-canvas" src="/image.png" alt="Current canvas" />
+        <div class="canvas-label" id="canvas-label">800 × 480 · 1-bit</div>
+      </div>
+      <div class="agents-panel">
+        <h3>Active Agents</h3>
+        <div id="agents-list"></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="btn-cycle">▶ Run Cycle</button>
+      <button id="btn-refresh">↻ Refresh</button>
+      <span class="status-msg" id="status-msg"></span>
+    </div>
+
+    <div class="filmstrip-section">
+      <h3>Canvas History</h3>
+      <div class="filmstrip" id="filmstrip"></div>
+    </div>
+  </main>
+
+  <script>
+    const cycleInfo = document.getElementById('cycle-info');
+    const agentsList = document.getElementById('agents-list');
+    const filmstrip = document.getElementById('filmstrip');
+    const liveCanvas = document.getElementById('live-canvas');
+    const statusMsg = document.getElementById('status-msg');
+
+    async function fetchStatus() {
+      const res = await fetch('/api/status');
+      const data = await res.json();
+      cycleInfo.textContent = `cycle ${data.cycle}  ·  refresh ${data.refresh_interval_sec}s`;
+      agentsList.innerHTML = '';
+      data.agents.forEach(a => {
+        const card = document.createElement('div');
+        card.className = 'agent-card' + (a.enabled ? ' enabled' : '');
+        card.innerHTML = `
+          <div class="name"><span class="status"></span>${a.name}</div>
+          <div class="role">${a.role} · ${a.algorithm}</div>
+        `;
+        agentsList.appendChild(card);
+      });
+    }
+
+    async function fetchHistory() {
+      const res = await fetch('/api/history?limit=12');
+      const frames = await res.json();
+      filmstrip.innerHTML = '';
+      frames.forEach(f => {
+        const el = document.createElement('div');
+        el.className = 'strip-frame';
+        const ts = new Date(f.timestamp * 1000).toLocaleTimeString();
+        el.innerHTML = `
+          <img src="data:image/png;base64,${f.thumbnail_b64}" alt="cycle ${f.cycle}" />
+          <div class="meta">
+            <span>#${f.cycle}</span>
+            <span class="delta"> · Δ${f.delta_pct.toFixed(1)}%</span>
+          </div>
+        `;
+        filmstrip.appendChild(el);
+      });
+    }
+
+    function refreshCanvas() {
+      liveCanvas.src = '/image.png?t=' + Date.now();
+    }
+
+    document.getElementById('btn-cycle').addEventListener('click', async () => {
+      statusMsg.textContent = 'Triggering cycle…';
+      await fetch('/api/cycle', { method: 'POST' });
+      setTimeout(() => {
+        refreshCanvas();
+        fetchStatus();
+        fetchHistory();
+        statusMsg.textContent = 'Done.';
+        setTimeout(() => statusMsg.textContent = '', 2000);
+      }, 800);
+    });
+
+    document.getElementById('btn-refresh').addEventListener('click', () => {
+      refreshCanvas();
+      fetchStatus();
+      fetchHistory();
+    });
+
+    // Initial load
+    fetchStatus();
+    fetchHistory();
+
+    // Auto-refresh every 30s
+    setInterval(() => {
+      fetchStatus();
+      fetchHistory();
+      refreshCanvas();
+    }, 30000);
+  </script>
+</body>
+</html>

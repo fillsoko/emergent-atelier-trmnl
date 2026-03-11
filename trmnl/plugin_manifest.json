@@ -1,0 +1,18 @@
+{
+  "name": "Emergent Atelier",
+  "description": "Multi-agent evolving pixel art for your eInk display.",
+  "version": "0.1.0",
+  "strategy": "polling",
+  "polling_url": "http://localhost:8000/image.png",
+  "polling_interval_minutes": 15,
+  "image_format": "png",
+  "resolution": {
+    "width": 800,
+    "height": 480
+  },
+  "color_depth": "1-bit",
+  "dithering": false,
+  "author": "Emergent Atelier contributors",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/fillsoko/TRMNL_Art"
+}

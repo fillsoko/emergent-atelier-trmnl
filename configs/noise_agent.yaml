@@ -1,0 +1,11 @@
+name: noise-layer
+role: compositor
+algorithm: noise
+influence_radius: 80
+pixel_budget: 800
+scheduling_weight: 1.0
+enabled: true
+random_seed: 42
+params:
+  density: 0.08
+  value: random

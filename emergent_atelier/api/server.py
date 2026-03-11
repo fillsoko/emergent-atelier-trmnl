@@ -1,0 +1,179 @@
+"""FastAPI server — HTTP image endpoint + dashboard API.
+
+FR-10: HTTP endpoint returning current canvas PNG.
+FR-11: Optional dithering for TRMNL X (grayscale).
+FR-12: TRMNL plugin manifest endpoint.
+FR-13: Configurable refresh cycle.
+FR-17/18: Dashboard data endpoints.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import base64
+import io
+import json
+import logging
+import time
+from pathlib import Path
+from typing import Any
+
+from fastapi import FastAPI, Query, Response
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+from emergent_atelier.canvas.coordinator import Coordinator
+from emergent_atelier.canvas.state import CanvasStateStore
+
+logger = logging.getLogger(__name__)
+
+app = FastAPI(title="Emergent Atelier", version="0.1.0")
+
+# These are set by main.py before uvicorn starts
+_store: CanvasStateStore | None = None
+_coordinator: Coordinator | None = None
+_refresh_interval_sec: int = 900  # 15 min default
+
+
+def init_app(
+    store: CanvasStateStore,
+    coordinator: Coordinator,
+    refresh_interval_sec: int = 900,
+) -> None:
+    global _store, _coordinator, _refresh_interval_sec
+    _store = store
+    _coordinator = coordinator
+    _refresh_interval_sec = refresh_interval_sec
+
+
+# ------------------------------------------------------------------
+# TRMNL plugin endpoint
+# ------------------------------------------------------------------
+
+@app.get("/image.png", response_class=Response)
+def get_canvas_png(dither: bool = Query(False, description="Apply Floyd-Steinberg dithering")) -> Response:
+    """Current canvas as 1-bit PNG. Consumed by TRMNL plugin."""
+    assert _store is not None
+    version = _store.current()
+    data = version.to_png_bytes(dither=dither)
+    return Response(content=data, media_type="image/png")
+
+
+@app.get("/plugin.json")
+def get_plugin_manifest() -> JSONResponse:
+    """TRMNL-compatible plugin manifest."""
+    manifest_path = Path(__file__).parent.parent.parent / "trmnl" / "plugin_manifest.json"
+    with manifest_path.open() as f:
+        manifest = json.load(f)
+    return JSONResponse(content=manifest)
+
+
+# ------------------------------------------------------------------
+# Status / API
+# ------------------------------------------------------------------
+
+@app.get("/api/status")
+def get_status() -> dict[str, Any]:
+    assert _store is not None and _coordinator is not None
+    current = _store.current()
+    agents = _coordinator.registered_agents()
+    return {
+        "cycle": current.cycle,
+        "timestamp": current.timestamp,
+        "refresh_interval_sec": _refresh_interval_sec,
+        "agents": [
+            {
+                "name": a.config.name,
+                "role": a.config.role,
+                "algorithm": a.config.algorithm,
+                "enabled": a.config.enabled,
+                "influence_radius": a.config.influence_radius,
+                "pixel_budget": a.config.pixel_budget,
+            }
+            for a in agents
+        ],
+    }
+
+
+@app.get("/api/history")
+def get_history(limit: int = Query(10, le=50)) -> list[dict[str, Any]]:
+    assert _store is not None
+    versions = _store.history()[-limit:]
+    result = []
+    for v in reversed(versions):
+        thumb = _version_thumbnail_b64(v)
+        result.append({
+            "cycle": v.cycle,
+            "timestamp": v.timestamp,
+            "contributing_agents": v.contributing_agents,
+            "delta_pct": v.delta_pct,
+            "thumbnail_b64": thumb,
+        })
+    return result
+
+
+@app.get("/api/agents")
+def get_agents() -> list[dict[str, Any]]:
+    assert _coordinator is not None
+    return [
+        {
+            "name": a.config.name,
+            "role": a.config.role,
+            "algorithm": a.config.algorithm,
+            "enabled": a.config.enabled,
+        }
+        for a in _coordinator.registered_agents()
+    ]
+
+
+@app.post("/api/cycle")
+async def trigger_cycle() -> dict[str, str]:
+    """Manually trigger a canvas evolution cycle."""
+    assert _coordinator is not None
+    asyncio.create_task(_coordinator.run_cycle())
+    return {"status": "cycle_triggered"}
+
+
+# ------------------------------------------------------------------
+# Dashboard HTML
+# ------------------------------------------------------------------
+
+_templates_dir = Path(__file__).parent.parent / "dashboard" / "templates"
+_templates = Jinja2Templates(directory=str(_templates_dir))
+
+_static_dir = Path(__file__).parent.parent / "dashboard" / "static"
+if _static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
+
+
+@app.get("/", response_class=HTMLResponse)
+async def dashboard() -> HTMLResponse:
+    html_path = _templates_dir / "index.html"
+    return HTMLResponse(content=html_path.read_text())
+
+
+# ------------------------------------------------------------------
+# Background cycle runner
+# ------------------------------------------------------------------
+
+async def cycle_runner(interval_sec: int) -> None:
+    """Runs canvas cycles on the configured interval."""
+    assert _coordinator is not None
+    while True:
+        try:
+            await _coordinator.run_cycle()
+        except Exception:
+            logger.exception("Cycle runner error")
+        await asyncio.sleep(interval_sec)
+
+
+# ------------------------------------------------------------------
+# Helpers
+# ------------------------------------------------------------------
+
+def _version_thumbnail_b64(version: Any) -> str:
+    thumb = version.image.convert("L").resize((160, 96))
+    buf = io.BytesIO()
+    thumb.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()

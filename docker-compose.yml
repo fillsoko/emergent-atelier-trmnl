@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  emergent-atelier:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data           # Persist canvas history
+      - ./configs:/app/configs     # Live-reload agent configs (restart required)
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
