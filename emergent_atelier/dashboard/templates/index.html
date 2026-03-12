@@ -25,28 +25,176 @@
       font-size: 13px;
       min-height: 100vh;
     }
-    header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px 24px;
-      border-bottom: 1px solid #333;
-    }
-    header h1 { font-size: 18px; letter-spacing: 0.08em; }
-    header .badge {
-      font-size: 10px;
-      background: #333;
-      padding: 2px 8px;
-      border-radius: 2px;
-      color: var(--mid);
-      letter-spacing: 0.12em;
-    }
-    .cycle-info {
-      margin-left: auto;
-      color: var(--mid);
-      font-size: 11px;
+
+    /* ── Hero Slider ────────────────────────────────── */
+    .hero {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      background: #080808;
+      border-bottom: 1px solid #222;
     }
 
+    .hero-track {
+      display: flex;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: transform;
+    }
+
+    .hero-slide {
+      flex: 0 0 100%;
+      position: relative;
+      min-height: 420px;
+      display: flex;
+      align-items: center;
+    }
+
+    @media (max-width: 640px) {
+      .hero-slide { min-height: 340px; }
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      object-fit: cover;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      opacity: 0.35;
+    }
+
+    .hero-bg-placeholder {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        45deg,
+        #0d0d0d 0px,
+        #0d0d0d 4px,
+        #111 4px,
+        #111 8px
+      );
+      opacity: 0.7;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      padding: 48px 64px;
+      max-width: 720px;
+    }
+
+    @media (max-width: 640px) {
+      .hero-content { padding: 32px 24px; }
+    }
+
+    .hero-eyebrow {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: var(--mid);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .hero-headline {
+      font-size: clamp(22px, 4vw, 38px);
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      color: var(--paper);
+      margin-bottom: 16px;
+      font-weight: bold;
+    }
+
+    .hero-body {
+      font-size: 13px;
+      line-height: 1.7;
+      color: #b8b0a0;
+      margin-bottom: 28px;
+      max-width: 520px;
+    }
+
+    .hero-cta {
+      display: inline-block;
+      background: var(--paper);
+      color: var(--ink);
+      border: none;
+      padding: 10px 24px;
+      font-family: inherit;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: var(--radius);
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .hero-cta:hover { opacity: 0.85; }
+    .hero-cta:active { opacity: 0.7; }
+
+    /* Prev / Next arrows */
+    .hero-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 10;
+      background: rgba(13, 13, 13, 0.7);
+      border: 1px solid #333;
+      color: var(--paper);
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: var(--radius);
+      font-size: 16px;
+      transition: background 0.15s, border-color 0.15s;
+      user-select: none;
+    }
+    .hero-arrow:hover { background: rgba(40, 40, 40, 0.9); border-color: #555; }
+    .hero-arrow.prev { left: 16px; }
+    .hero-arrow.next { right: 16px; }
+
+    @media (max-width: 640px) {
+      .hero-arrow { display: none; }
+    }
+
+    /* Dot indicators */
+    .hero-dots {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+    }
+    .hero-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #444;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .hero-dot.active {
+      background: var(--paper);
+      transform: scale(1.3);
+    }
+
+    /* Slide counter */
+    .hero-counter {
+      position: absolute;
+      bottom: 14px;
+      right: 20px;
+      z-index: 10;
+      font-size: 10px;
+      color: #555;
+      letter-spacing: 0.1em;
+    }
+
+    /* ── Existing dashboard styles ─────────────────── */
     main { padding: 24px; display: grid; gap: 24px; }
 
     /* Canvas panel */
@@ -166,13 +314,86 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>Emergent Atelier</h1>
-    <span class="badge">v0.1.0</span>
-    <div class="cycle-info" id="cycle-info">cycle —</div>
-  </header>
 
-  <main>
+  <!-- ── Hero Gallery Slider ───────────────────────── -->
+  <section class="hero" aria-label="Hero gallery" role="region">
+    <div class="hero-track" id="hero-track">
+
+      <article class="hero-slide" aria-label="Slide 1 of 5">
+        <div class="hero-bg-placeholder" aria-hidden="true"></div>
+        <img class="hero-bg" src="/static/hero/slide-1.png" alt="" aria-hidden="true"
+             onerror="this.style.display='none'" />
+        <div class="hero-content">
+          <p class="hero-eyebrow">Emergent Atelier</p>
+          <h1 class="hero-headline">Art that thinks<br>for itself</h1>
+          <p class="hero-body">Multiple AI agents collaborate on a shared canvas.<br>Each cycle, something new emerges.</p>
+          <a class="hero-cta" href="#dashboard">Get Started</a>
+        </div>
+      </article>
+
+      <article class="hero-slide" aria-label="Slide 2 of 5">
+        <div class="hero-bg-placeholder" aria-hidden="true"></div>
+        <img class="hero-bg" src="/static/hero/slide-2.png" alt="" aria-hidden="true"
+             onerror="this.style.display='none'" />
+        <div class="hero-content">
+          <p class="hero-eyebrow">eInk Native</p>
+          <h1 class="hero-headline">Built for the<br>quiet screen</h1>
+          <p class="hero-body">Designed for TRMNL eInk displays. Pixel-perfect generative art that updates silently on your wall.</p>
+          <a class="hero-cta" href="https://github.com/fillsoko/emergent-atelier-trmnl" target="_blank" rel="noopener">View on GitHub</a>
+        </div>
+      </article>
+
+      <article class="hero-slide" aria-label="Slide 3 of 5">
+        <div class="hero-bg-placeholder" aria-hidden="true"></div>
+        <img class="hero-bg" src="/static/hero/slide-3.png" alt="" aria-hidden="true"
+             onerror="this.style.display='none'" />
+        <div class="hero-content">
+          <p class="hero-eyebrow">Open Source</p>
+          <h1 class="hero-headline">Multi-agent.<br>Continuous. Open.</h1>
+          <p class="hero-body">Run noise, edge-tracing, and erosion agents concurrently. Open-source. Add your own.</p>
+          <a class="hero-cta" href="https://github.com/fillsoko/emergent-atelier-trmnl" target="_blank" rel="noopener">See It Live</a>
+        </div>
+      </article>
+
+      <article class="hero-slide" aria-label="Slide 4 of 5">
+        <div class="hero-bg-placeholder" aria-hidden="true"></div>
+        <img class="hero-bg" src="/static/hero/slide-4.png" alt="" aria-hidden="true"
+             onerror="this.style.display='none'" />
+        <div class="hero-content">
+          <p class="hero-eyebrow">Living History</p>
+          <h1 class="hero-headline">Every frame<br>is unique</h1>
+          <p class="hero-body">10-frame history. No two refreshes are the same. The artwork remembers itself.</p>
+          <a class="hero-cta" href="#history">View History</a>
+        </div>
+      </article>
+
+      <article class="hero-slide" aria-label="Slide 5 of 5">
+        <div class="hero-bg-placeholder" aria-hidden="true"></div>
+        <img class="hero-bg" src="/static/hero/slide-5.png" alt="" aria-hidden="true"
+             onerror="this.style.display='none'" />
+        <div class="hero-content">
+          <p class="hero-eyebrow">Quick Setup</p>
+          <h1 class="hero-headline">Deploy in<br>60 seconds</h1>
+          <p class="hero-body">Clone, <code style="font-size:11px;background:#1a1a1a;padding:1px 5px;border-radius:2px;">docker compose up</code>, and your eInk display starts receiving art. That is it.</p>
+          <a class="hero-cta" href="https://github.com/fillsoko/emergent-atelier-trmnl#readme" target="_blank" rel="noopener">Deploy Now</a>
+        </div>
+      </article>
+
+    </div><!-- /.hero-track -->
+
+    <!-- Prev / Next -->
+    <button class="hero-arrow prev" id="hero-prev" aria-label="Previous slide">&#8592;</button>
+    <button class="hero-arrow next" id="hero-next" aria-label="Next slide">&#8594;</button>
+
+    <!-- Dot indicators -->
+    <div class="hero-dots" role="tablist" aria-label="Slide indicators" id="hero-dots"></div>
+
+    <!-- Slide counter -->
+    <div class="hero-counter" id="hero-counter" aria-live="polite"></div>
+  </section>
+  <!-- ── /Hero Gallery Slider ──────────────────────── -->
+
+  <main id="dashboard">
     <div class="canvas-panel">
       <div class="canvas-wrap">
         <img id="live-canvas" src="/image.png" alt="Current canvas" />
@@ -185,55 +406,125 @@
     </div>
 
     <div class="controls">
-      <button id="btn-cycle">▶ Run Cycle</button>
-      <button id="btn-refresh">↻ Refresh</button>
+      <button id="btn-cycle">&#9654; Run Cycle</button>
+      <button id="btn-refresh">&#8635; Refresh</button>
       <span class="status-msg" id="status-msg"></span>
     </div>
 
-    <div class="filmstrip-section">
+    <div class="filmstrip-section" id="history">
       <h3>Canvas History</h3>
       <div class="filmstrip" id="filmstrip"></div>
     </div>
   </main>
 
   <script>
-    const cycleInfo = document.getElementById('cycle-info');
-    const agentsList = document.getElementById('agents-list');
-    const filmstrip = document.getElementById('filmstrip');
-    const liveCanvas = document.getElementById('live-canvas');
-    const statusMsg = document.getElementById('status-msg');
+    /* ── Hero Slider ──────────────────────────────── */
+    (function () {
+      var SLIDE_COUNT = 5;
+      var AUTO_DELAY  = 5000;
+      var current     = 0;
+      var timer       = null;
+
+      var track  = document.getElementById('hero-track');
+      var dots   = document.getElementById('hero-dots');
+      var prev   = document.getElementById('hero-prev');
+      var next   = document.getElementById('hero-next');
+      var ctr    = document.getElementById('hero-counter');
+
+      // Build dots
+      for (var i = 0; i < SLIDE_COUNT; i++) {
+        var btn = document.createElement('button');
+        btn.className = 'hero-dot' + (i === 0 ? ' active' : '');
+        btn.setAttribute('role', 'tab');
+        btn.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+        btn.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+        btn.dataset.idx = i;
+        btn.addEventListener('click', function () { goTo(+this.dataset.idx, true); });
+        dots.appendChild(btn);
+      }
+
+      function goTo(idx, manual) {
+        current = (idx + SLIDE_COUNT) % SLIDE_COUNT;
+        track.style.transform = 'translateX(-' + (current * 100) + '%)';
+
+        var allDots = dots.querySelectorAll('.hero-dot');
+        allDots.forEach(function (d, di) {
+          d.classList.toggle('active', di === current);
+          d.setAttribute('aria-selected', di === current ? 'true' : 'false');
+        });
+
+        ctr.textContent = (current + 1) + ' / ' + SLIDE_COUNT;
+
+        if (manual) { resetTimer(); }
+      }
+
+      function resetTimer() {
+        clearInterval(timer);
+        timer = setInterval(function () { goTo(current + 1, false); }, AUTO_DELAY);
+      }
+
+      prev.addEventListener('click', function () { goTo(current - 1, true); });
+      next.addEventListener('click', function () { goTo(current + 1, true); });
+
+      // Keyboard navigation
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowLeft')  { goTo(current - 1, true); }
+        if (e.key === 'ArrowRight') { goTo(current + 1, true); }
+      });
+
+      // Pause on hover
+      var hero = document.querySelector('.hero');
+      hero.addEventListener('mouseenter', function () { clearInterval(timer); });
+      hero.addEventListener('mouseleave', function () { resetTimer(); });
+
+      // Touch / swipe support
+      var touchStartX = null;
+      hero.addEventListener('touchstart', function (e) {
+        touchStartX = e.touches[0].clientX;
+      }, { passive: true });
+      hero.addEventListener('touchend', function (e) {
+        if (touchStartX === null) return;
+        var dx = e.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(dx) > 40) { goTo(dx < 0 ? current + 1 : current - 1, true); }
+        touchStartX = null;
+      });
+
+      // Init
+      goTo(0, false);
+      resetTimer();
+    }());
+
+    /* ── Dashboard ───────────────────────────────── */
+    var cycleInfo = document.getElementById('cycle-info');
+    var agentsList = document.getElementById('agents-list');
+    var filmstrip = document.getElementById('filmstrip');
+    var liveCanvas = document.getElementById('live-canvas');
+    var statusMsg = document.getElementById('status-msg');
 
     async function fetchStatus() {
-      const res = await fetch('/api/status');
-      const data = await res.json();
-      cycleInfo.textContent = `cycle ${data.cycle}  ·  refresh ${data.refresh_interval_sec}s`;
+      var res = await fetch('/api/status');
+      var data = await res.json();
       agentsList.innerHTML = '';
-      data.agents.forEach(a => {
-        const card = document.createElement('div');
+      data.agents.forEach(function (a) {
+        var card = document.createElement('div');
         card.className = 'agent-card' + (a.enabled ? ' enabled' : '');
-        card.innerHTML = `
-          <div class="name"><span class="status"></span>${a.name}</div>
-          <div class="role">${a.role} · ${a.algorithm}</div>
-        `;
+        card.innerHTML = '<div class="name"><span class="status"></span>' + a.name + '</div>'
+          + '<div class="role">' + a.role + ' \xb7 ' + a.algorithm + '</div>';
         agentsList.appendChild(card);
       });
     }
 
     async function fetchHistory() {
-      const res = await fetch('/api/history?limit=12');
-      const frames = await res.json();
+      var res = await fetch('/api/history?limit=12');
+      var frames = await res.json();
       filmstrip.innerHTML = '';
-      frames.forEach(f => {
-        const el = document.createElement('div');
+      frames.forEach(function (f) {
+        var el = document.createElement('div');
         el.className = 'strip-frame';
-        const ts = new Date(f.timestamp * 1000).toLocaleTimeString();
-        el.innerHTML = `
-          <img src="data:image/png;base64,${f.thumbnail_b64}" alt="cycle ${f.cycle}" />
-          <div class="meta">
-            <span>#${f.cycle}</span>
-            <span class="delta"> · Δ${f.delta_pct.toFixed(1)}%</span>
-          </div>
-        `;
+        var ts = new Date(f.timestamp * 1000).toLocaleTimeString();
+        el.innerHTML = '<img src="data:image/png;base64,' + f.thumbnail_b64 + '" alt="cycle ' + f.cycle + '" />'
+          + '<div class="meta"><span>#' + f.cycle + '</span>'
+          + '<span class="delta"> \xb7 \u0394' + f.delta_pct.toFixed(1) + '%</span></div>';
         filmstrip.appendChild(el);
       });
     }
@@ -242,30 +533,28 @@
       liveCanvas.src = '/image.png?t=' + Date.now();
     }
 
-    document.getElementById('btn-cycle').addEventListener('click', async () => {
-      statusMsg.textContent = 'Triggering cycle…';
+    document.getElementById('btn-cycle').addEventListener('click', async function () {
+      statusMsg.textContent = 'Triggering cycle\u2026';
       await fetch('/api/cycle', { method: 'POST' });
-      setTimeout(() => {
+      setTimeout(function () {
         refreshCanvas();
         fetchStatus();
         fetchHistory();
         statusMsg.textContent = 'Done.';
-        setTimeout(() => statusMsg.textContent = '', 2000);
+        setTimeout(function () { statusMsg.textContent = ''; }, 2000);
       }, 800);
     });
 
-    document.getElementById('btn-refresh').addEventListener('click', () => {
+    document.getElementById('btn-refresh').addEventListener('click', function () {
       refreshCanvas();
       fetchStatus();
       fetchHistory();
     });
 
-    // Initial load
     fetchStatus();
     fetchHistory();
 
-    // Auto-refresh every 30s
-    setInterval(() => {
+    setInterval(function () {
       fetchStatus();
       fetchHistory();
       refreshCanvas();
