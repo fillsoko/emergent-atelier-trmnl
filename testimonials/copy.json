@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "name": "Sarah Chen",
+    "title": "Digital Artist",
+    "location": "San Francisco, CA",
+    "avatar": "testimonials/avatars/sarah_chen.jpg",
+    "persona": "digital_artist",
+    "quote": "Emergent Atelier completely changed how I think about generative art. Watching a multi-agent AI system negotiate and compose a piece in real time — then see it render on eInk with that gorgeous paper-like depth — is unlike anything I've experienced in 12 years of digital art. It doesn't feel like a screensaver. It feels like a collaborator."
+  },
+  {
+    "id": 2,
+    "name": "Aisha Patel",
+    "title": "Full-Stack Developer",
+    "location": "London, UK",
+    "avatar": "testimonials/avatars/aisha_patel.jpg",
+    "persona": "creative_developer",
+    "quote": "I plugged Emergent Atelier into my home office setup on a weekend and by Monday it was running on its own, generating new pieces every morning. The API is clean, the agent orchestration is surprisingly hackable, and the eInk output quality is stunning. I've since built a custom style plugin and the community was incredibly helpful getting it shipped."
+  },
+  {
+    "id": 3,
+    "name": "David Kowalski",
+    "title": "Product Designer",
+    "location": "Warsaw, Poland",
+    "avatar": "testimonials/avatars/david_kowalski.jpg",
+    "persona": "tech_early_adopter",
+    "quote": "I back a lot of early-stage projects and Emergent Atelier is one of the rare ones that ships what it promises. The multi-model approach is clever — Claude for composition, Gemini for style — and the results are genuinely beautiful. My eInk display in the living room has become a conversation piece every single time someone visits."
+  },
+  {
+    "id": 4,
+    "name": "Marcus Weber",
+    "title": "Smart Home Architect",
+    "location": "Berlin, Germany",
+    "avatar": "testimonials/avatars/marcus_weber.jpg",
+    "persona": "smart_home_user",
+    "quote": "I've integrated Emergent Atelier into my home automation stack and it works flawlessly. It respects the ambient energy of a space — quiet, low-power eInk displays that update silently and never intrude. The art itself adapts to time of day and season through the scheduling system. It's the first smart home gadget that genuinely feels calm rather than demanding attention."
+  },
+  {
+    "id": 5,
+    "name": "Priya Okonkwo",
+    "title": "UX Researcher & eInk Enthusiast",
+    "location": "Lagos, Nigeria",
+    "avatar": "testimonials/avatars/priya_okonkwo.jpg",
+    "persona": "eink_art_enthusiast",
+    "quote": "I've been obsessed with eInk displays for years — the paper-like texture, the zero-glare readability, the permanence of each frame. Emergent Atelier is the first software that truly respects the medium. The AI-generated pieces are composed for eInk, not just ported to it. Grayscale gradients, negative space, high-contrast lines — every artwork feels native to the display."
+  }
+]
