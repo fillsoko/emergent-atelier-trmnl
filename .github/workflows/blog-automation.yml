@@ -1,0 +1,29 @@
+name: Weekly Blog Post
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday at 9am UTC
+  workflow_dispatch:      # Allow manual trigger for testing
+
+jobs:
+  create-blog-task:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Paperclip blog post issue
+        run: |
+          WEEK=$(date +%Y-%m-%d)
+          curl -s -X POST "$PAPERCLIP_API_URL/api/companies/$PAPERCLIP_COMPANY_ID/issues" \
+            -H "Authorization: Bearer $PAPERCLIP_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"title\": \"Write weekly blog post — Week of $WEEK\",
+              \"assigneeAgentId\": \"65d521b9-5818-4206-bc8e-544db1e8c306\",
+              \"projectId\": \"9ca85d2a-0cf0-469a-9ccb-5a4fcf40ae3e\",
+              \"status\": \"todo\",
+              \"priority\": \"medium\",
+              \"description\": \"Weekly automated blog post. Gather highlights from completed Paperclip issues this week, write a 300-500 word update post, and commit to blog/posts/$WEEK-weekly-update.md in the website repo (emergent-atelier-website, src/content/blog/$WEEK-weekly-update.md). Cover: shipped features, team highlights, what is coming next.\"
+            }"
+        env:
+          PAPERCLIP_API_URL: ${{ secrets.PAPERCLIP_API_URL }}
+          PAPERCLIP_COMPANY_ID: ${{ secrets.PAPERCLIP_COMPANY_ID }}
+          PAPERCLIP_API_KEY: ${{ secrets.PAPERCLIP_API_KEY }}
