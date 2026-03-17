@@ -1,9 +1,13 @@
 {
   "name": "Emergent Atelier",
-  "description": "Multi-agent evolving pixel art for your eInk display.",
+  "description": "Multi-agent evolving pixel art for your eInk display. Autonomous AI agents collaborate on a shared 800×480 canvas, producing generative art that quietly evolves with every 15-minute refresh.",
   "version": "0.1.0",
-  "strategy": "polling",
-  "polling_url": "http://localhost:8000/image.png",
+  "strategy": "third_party",
+  "installation_url": "${TRMNL_PUBLIC_URL}/install",
+  "installation_success_webhook_url": "${TRMNL_PUBLIC_URL}/install/success",
+  "plugin_management_url": "${TRMNL_PUBLIC_URL}/manage",
+  "plugin_markup_url": "${TRMNL_PUBLIC_URL}/markup",
+  "uninstallation_webhook_url": "${TRMNL_PUBLIC_URL}/uninstall",
   "polling_interval_minutes": 15,
   "image_format": "png",
   "resolution": {
@@ -12,7 +16,9 @@
   },
   "color_depth": "1-bit",
   "dithering": false,
-  "author": "Emergent Atelier contributors",
+  "author": "Filip Sokolowski",
+  "author_email": "sokolowski.fill@googlemail.com",
   "license": "Apache-2.0",
-  "homepage": "https://github.com/fillsoko/TRMNL_Art"
+  "homepage": "https://github.com/fillsoko/emergent-atelier-trmnl",
+  "note": "Replace ${TRMNL_PUBLIC_URL} placeholders with your actual server URL after deploying."
 }

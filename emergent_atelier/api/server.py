@@ -25,10 +25,12 @@ from fastapi.templating import Jinja2Templates
 
 from emergent_atelier.canvas.coordinator import Coordinator
 from emergent_atelier.canvas.state import CanvasStateStore
+from emergent_atelier.api.marketplace import router as marketplace_router
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Emergent Atelier", version="0.1.0")
+app.include_router(marketplace_router)
 
 # These are set by main.py before uvicorn starts
 _store: CanvasStateStore | None = None
