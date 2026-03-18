@@ -4,7 +4,7 @@ services:
   emergent-atelier:
     build: .
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - ./data:/app/data           # Persist canvas history
       - ./configs:/app/configs     # Live-reload agent configs (restart required)
@@ -16,5 +16,5 @@ services:
       - TRMNL_CLIENT_SECRET=${TRMNL_CLIENT_SECRET:-}
       # Public base URL of this server (no trailing slash)
       # e.g. https://emergent-atelier.yourdomain.com
-      - TRMNL_PUBLIC_URL=${TRMNL_PUBLIC_URL:-http://localhost:8000}
+      - TRMNL_PUBLIC_URL=${TRMNL_PUBLIC_URL:-https://emergent-atelier.filipsokolowski.com}
     restart: unless-stopped
