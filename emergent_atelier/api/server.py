@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, Query, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -27,11 +28,24 @@ from fastapi.templating import Jinja2Templates
 from emergent_atelier.canvas.coordinator import Coordinator
 from emergent_atelier.canvas.state import CanvasStateStore
 from emergent_atelier.api.marketplace import router as marketplace_router
+from emergent_atelier.api.votes import router as votes_router
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Emergent Atelier", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://emergentatelier.dev",
+        "https://www.emergentatelier.dev",
+    ],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
+
 app.include_router(marketplace_router)
+app.include_router(votes_router)
 
 # These are set by main.py before uvicorn starts
 _store: CanvasStateStore | None = None
