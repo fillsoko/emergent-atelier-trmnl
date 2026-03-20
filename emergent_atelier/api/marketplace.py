@@ -129,7 +129,12 @@ async def install_success(request: Request) -> dict[str, str]:
     auth = request.headers.get("authorization", "")
     access_token = auth.removeprefix("Bearer ").strip()
 
+    # Validate: token must have been legitimately issued by our OAuth2 flow
     store = _load_store()
+    if not access_token or access_token not in store or store[access_token].get("status") != "pending":
+        logger.warning("install/success: unknown or already-processed token")
+        raise HTTPException(status_code=401, detail="Invalid or already-processed installation token")
+
     store[access_token] = {
         "access_token": access_token,
         "plugin_setting_id": plugin_setting_id,
@@ -229,10 +234,16 @@ async def uninstall(request: Request) -> dict[str, str]:
     auth = request.headers.get("authorization", "")
     access_token = auth.removeprefix("Bearer ").strip()
 
+    if not access_token:
+        logger.warning("uninstall: missing Authorization header")
+        raise HTTPException(status_code=401, detail="Missing authorization token")
+
     store = _load_store()
     if access_token in store:
         del store[access_token]
         _save_store(store)
         logger.info("User uninstalled; removed access_token from store")
+    else:
+        logger.warning("uninstall: unknown access_token, ignoring")
 
     return {"status": "ok"}

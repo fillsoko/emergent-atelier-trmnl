@@ -17,7 +17,6 @@
   "color_depth": "1-bit",
   "dithering": false,
   "author": "Filip Sokolowski",
-  "author_email": "sokolowski.fill@googlemail.com",
   "license": "Apache-2.0",
   "homepage": "https://github.com/fillsoko/emergent-atelier-trmnl",
   "note": "Replace ${TRMNL_PUBLIC_URL} placeholders with your actual server URL after deploying."

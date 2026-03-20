@@ -13,8 +13,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Create directories
-RUN mkdir -p data/canvas
+# Create directories and non-root user
+RUN mkdir -p data/canvas && \
+    useradd -m -u 1001 appuser && \
+    chown -R appuser:appuser /app
+
+USER appuser
 
 EXPOSE 8000
 

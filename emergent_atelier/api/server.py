@@ -14,11 +14,12 @@ import base64
 import io
 import json
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Query, Response
+from fastapi import FastAPI, Header, HTTPException, Query, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -129,9 +130,16 @@ def get_agents() -> list[dict[str, Any]]:
     ]
 
 
+_CYCLE_SECRET = os.getenv("CYCLE_SECRET", "")
+
+
 @app.post("/api/cycle")
-async def trigger_cycle() -> dict[str, str]:
-    """Manually trigger a canvas evolution cycle."""
+async def trigger_cycle(authorization: str = Header(default="")) -> dict[str, str]:
+    """Manually trigger a canvas evolution cycle. Requires Authorization: Bearer <CYCLE_SECRET> when CYCLE_SECRET env var is set."""
+    if _CYCLE_SECRET:
+        token = authorization.removeprefix("Bearer ").strip()
+        if token != _CYCLE_SECRET:
+            raise HTTPException(status_code=401, detail="Unauthorized")
     assert _coordinator is not None
     asyncio.create_task(_coordinator.run_cycle())
     return {"status": "cycle_triggered"}
