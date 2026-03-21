@@ -15,6 +15,8 @@ Reference: https://docs.trmnl.com/go/plugin-marketplace
 from __future__ import annotations
 
 import base64
+import hashlib
+import hmac
 import io
 import json
 import logging
@@ -25,6 +27,7 @@ from typing import Any
 import httpx
 from fastapi import APIRouter, Header, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +62,44 @@ def _load_store() -> dict[str, Any]:
 def _save_store(data: dict[str, Any]) -> None:
     _STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
     _STORE_PATH.write_text(json.dumps(data, indent=2))
+
+
+# ---------------------------------------------------------------------------
+# HMAC-SHA256 signature verification
+# ---------------------------------------------------------------------------
+
+def _verify_trmnl_signature(body: bytes, signature_header: str) -> bool:
+    """Verify the HMAC-SHA256 webhook signature sent by TRMNL.
+
+    TRMNL signs each webhook request with CLIENT_SECRET using HMAC-SHA256
+    and sends the hex digest in the X-Trmnl-Signature header.
+    If CLIENT_SECRET is not configured, verification is skipped.
+    """
+    if not _CLIENT_SECRET:
+        return True
+    expected = hmac.new(_CLIENT_SECRET.encode(), body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature_header)
+
+
+# ---------------------------------------------------------------------------
+# Pydantic request models (SOK-148: field length constraints)
+# ---------------------------------------------------------------------------
+
+class _UserPayload(BaseModel):
+    name: str = Field(default="", max_length=255)
+    email: str = Field(default="", max_length=255)
+    time_zone: str = Field(default="UTC", max_length=100)
+
+
+class _InstallSuccessPayload(BaseModel):
+    plugin_setting_id: str = Field(default="", max_length=255)
+    uuid: str = Field(default="", max_length=255)
+    user: _UserPayload = Field(default_factory=_UserPayload)
+
+
+class _UninstallPayload(BaseModel):
+    plugin_setting_id: str = Field(default="", max_length=255)
+    uuid: str = Field(default="", max_length=255)
 
 
 # ---------------------------------------------------------------------------
@@ -119,11 +160,21 @@ async def install_start(
 # ---------------------------------------------------------------------------
 
 @router.post("/install/success", status_code=200)
-async def install_success(request: Request) -> dict[str, str]:
+async def install_success(
+    request: Request,
+    x_trmnl_signature: str = Header(default=""),
+) -> dict[str, str]:
     """Step 2: TRMNL posts user profile here after install completes."""
-    body = await request.json()
-    plugin_setting_id = body.get("plugin_setting_id", "")
-    uuid = body.get("uuid", "")
+    raw_body = await request.body()
+
+    if not _verify_trmnl_signature(raw_body, x_trmnl_signature):
+        logger.warning("install/success: HMAC signature mismatch")
+        raise HTTPException(status_code=401, detail="Invalid request signature")
+
+    try:
+        payload = _InstallSuccessPayload.model_validate_json(raw_body)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Invalid request body")
 
     # Extract access_token from Authorization header
     auth = request.headers.get("authorization", "")
@@ -137,17 +188,17 @@ async def install_success(request: Request) -> dict[str, str]:
 
     store[access_token] = {
         "access_token": access_token,
-        "plugin_setting_id": plugin_setting_id,
-        "uuid": uuid,
+        "plugin_setting_id": payload.plugin_setting_id,
+        "uuid": payload.uuid,
         "user": {
-            "name": body.get("user", {}).get("name", ""),
-            "email": body.get("user", {}).get("email", ""),
-            "timezone": body.get("user", {}).get("time_zone", "UTC"),
+            "name": payload.user.name,
+            "email": payload.user.email,
+            "timezone": payload.user.time_zone,
         },
         "status": "active",
     }
     _save_store(store)
-    logger.info("Installation confirmed for uuid=%s", uuid)
+    logger.info("Installation confirmed for uuid=%s", payload.uuid)
     return {"status": "ok"}
 
 
@@ -201,12 +252,26 @@ async def manage(plugin_setting_id: str = "") -> HTMLResponse:
 async def get_markup(
     request: Request,
     authorization: str = Header(default=""),
+    x_trmnl_signature: str = Header(default=""),
 ) -> JSONResponse:
     """Return current canvas embedded in TRMNL-compatible HTML markup.
 
     TRMNL renders the returned HTML to a PNG and pushes it to the device.
     We embed the canvas as a base64 PNG inside a full-bleed <img>.
     """
+    raw_body = await request.body()
+
+    if not _verify_trmnl_signature(raw_body, x_trmnl_signature):
+        logger.warning("markup: HMAC signature mismatch")
+        raise HTTPException(status_code=401, detail="Invalid request signature")
+
+    # Validate the caller is an active installed plugin user (SOK-142)
+    access_token = authorization.removeprefix("Bearer ").strip()
+    store = _load_store()
+    if not access_token or store.get(access_token, {}).get("status") != "active":
+        logger.warning("markup: unauthorized access_token")
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
     from emergent_atelier.api.server import _store  # avoid circular import
 
     if _store is None:
@@ -229,8 +294,17 @@ async def get_markup(
 # ---------------------------------------------------------------------------
 
 @router.post("/uninstall", status_code=200)
-async def uninstall(request: Request) -> dict[str, str]:
+async def uninstall(
+    request: Request,
+    x_trmnl_signature: str = Header(default=""),
+) -> dict[str, str]:
     """TRMNL notifies us when a user uninstalls the plugin."""
+    raw_body = await request.body()
+
+    if not _verify_trmnl_signature(raw_body, x_trmnl_signature):
+        logger.warning("uninstall: HMAC signature mismatch")
+        raise HTTPException(status_code=401, detail="Invalid request signature")
+
     auth = request.headers.get("authorization", "")
     access_token = auth.removeprefix("Bearer ").strip()
 

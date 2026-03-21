@@ -20,11 +20,14 @@ from hmac import compare_digest
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Header, HTTPException, Query, Response
+from fastapi import FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from emergent_atelier.canvas.coordinator import Coordinator
 from emergent_atelier.canvas.state import CanvasStateStore
@@ -33,8 +36,10 @@ from emergent_atelier.api.votes import router as votes_router
 
 logger = logging.getLogger(__name__)
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Emergent Atelier", version="0.1.0")
-
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -44,7 +49,6 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
-
 app.include_router(marketplace_router)
 app.include_router(votes_router)
 
@@ -70,7 +74,8 @@ def init_app(
 # ------------------------------------------------------------------
 
 @app.get("/image.png", response_class=Response)
-def get_canvas_png(dither: bool = Query(False, description="Apply Floyd-Steinberg dithering")) -> Response:
+@limiter.limit("30/minute")
+def get_canvas_png(request: Request, dither: bool = Query(False, description="Apply Floyd-Steinberg dithering")) -> Response:
     """Current canvas as 1-bit PNG. Consumed by TRMNL plugin."""
     assert _store is not None
     version = _store.current()
@@ -92,7 +97,8 @@ def get_plugin_manifest() -> JSONResponse:
 # ------------------------------------------------------------------
 
 @app.get("/api/status")
-def get_status() -> dict[str, Any]:
+@limiter.limit("30/minute")
+def get_status(request: Request) -> dict[str, Any]:
     assert _store is not None and _coordinator is not None
     current = _store.current()
     agents = _coordinator.registered_agents()
@@ -115,7 +121,8 @@ def get_status() -> dict[str, Any]:
 
 
 @app.get("/api/history")
-def get_history(limit: int = Query(10, le=50)) -> list[dict[str, Any]]:
+@limiter.limit("20/minute")
+def get_history(request: Request, limit: int = Query(10, le=50)) -> list[dict[str, Any]]:
     assert _store is not None
     versions = _store.history()[-limit:]
     result = []
@@ -132,7 +139,8 @@ def get_history(limit: int = Query(10, le=50)) -> list[dict[str, Any]]:
 
 
 @app.get("/api/agents")
-def get_agents() -> list[dict[str, Any]]:
+@limiter.limit("20/minute")
+def get_agents(request: Request) -> list[dict[str, Any]]:
     assert _coordinator is not None
     return [
         {
@@ -149,7 +157,8 @@ _CYCLE_SECRET = os.getenv("CYCLE_SECRET", "")
 
 
 @app.post("/api/cycle")
-async def trigger_cycle(authorization: str = Header(default="")) -> dict[str, str]:
+@limiter.limit("5/minute")
+async def trigger_cycle(request: Request, authorization: str = Header(default="")) -> dict[str, str]:
     """Manually trigger a canvas evolution cycle. Requires Authorization: Bearer <CYCLE_SECRET> when CYCLE_SECRET env var is set."""
     if _CYCLE_SECRET:
         token = authorization.removeprefix("Bearer ").strip()

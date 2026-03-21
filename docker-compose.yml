@@ -4,7 +4,7 @@ services:
   emergent-atelier:
     build: .
     ports:
-      - "8001:8000"
+      - "127.0.0.1:8001:8000"
     volumes:
       - ./data:/app/data           # Persist canvas history
       - ./configs:/app/configs     # Live-reload agent configs (restart required)
