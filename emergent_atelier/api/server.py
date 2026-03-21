@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import time
+from hmac import compare_digest
 from pathlib import Path
 from typing import Any
 
@@ -152,7 +153,7 @@ async def trigger_cycle(authorization: str = Header(default="")) -> dict[str, st
     """Manually trigger a canvas evolution cycle. Requires Authorization: Bearer <CYCLE_SECRET> when CYCLE_SECRET env var is set."""
     if _CYCLE_SECRET:
         token = authorization.removeprefix("Bearer ").strip()
-        if token != _CYCLE_SECRET:
+        if not compare_digest(token, _CYCLE_SECRET):
             raise HTTPException(status_code=401, detail="Unauthorized")
     assert _coordinator is not None
     asyncio.create_task(_coordinator.run_cycle())
