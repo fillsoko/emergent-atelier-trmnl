@@ -15,6 +15,8 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import os
+import sys
 
 import uvicorn
 
@@ -43,7 +45,16 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
+def _check_required_env() -> None:
+    required = ["CYCLE_SECRET", "TRMNL_CLIENT_ID", "TRMNL_CLIENT_SECRET"]
+    missing = [k for k in required if not os.getenv(k)]
+    if missing:
+        logger.error("FATAL: Missing required environment variables: %s", missing)
+        sys.exit(1)
+
+
 async def main() -> None:
+    _check_required_env()
     args = parse_args()
 
     # Initialise canvas store

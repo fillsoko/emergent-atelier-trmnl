@@ -15,9 +15,9 @@ import logging
 import sqlite3
 import time
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Path as PathParam, Request
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,8 @@ _DB_PATH = Path("data/votes.db")
 
 def _get_db() -> sqlite3.Connection:
     _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(_DB_PATH), check_same_thread=False)
+    conn = sqlite3.connect(str(_DB_PATH), timeout=10.0, check_same_thread=False)
+    conn.execute("PRAGMA journal_mode=WAL")
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -69,9 +70,8 @@ def _hash_ip(ip: str) -> str:
 
 
 def _client_ip(request: Request) -> str:
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    # Caddy is the only ingress; request.client.host is always the real client IP.
+    # We do NOT trust X-Forwarded-For to prevent rate-limit bypass via header spoofing.
     return request.client.host if request.client else "unknown"
 
 
@@ -103,8 +103,11 @@ class VoteResponse(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+_IssueId = Annotated[str, PathParam(max_length=255, pattern=r"^[a-zA-Z0-9_-]+$")]
+
+
 @router.post("/{issue_identifier}", response_model=VoteResponse)
-def cast_vote(issue_identifier: str, body: VoteRequest, request: Request) -> VoteResponse:
+def cast_vote(issue_identifier: _IssueId, body: VoteRequest, request: Request) -> VoteResponse:
     """Cast or change a vote on a roadmap item."""
     ip = _client_ip(request)
     ip_hash = _hash_ip(ip)
@@ -145,7 +148,7 @@ def cast_vote(issue_identifier: str, body: VoteRequest, request: Request) -> Vot
 
 
 @router.get("/{issue_identifier}", response_model=VoteResponse)
-def get_votes(issue_identifier: str, request: Request) -> VoteResponse:
+def get_votes(issue_identifier: _IssueId, request: Request) -> VoteResponse:
     """Get vote counts and the caller's own vote for a roadmap item."""
     ip = _client_ip(request)
     ip_hash = _hash_ip(ip)

@@ -207,7 +207,7 @@ async def install_success(
 # ---------------------------------------------------------------------------
 
 @router.get("/manage", response_class=HTMLResponse)
-async def manage(plugin_setting_id: str = "") -> HTMLResponse:
+async def manage() -> HTMLResponse:
     """Plugin management page shown to installed users."""
     public_url = _PUBLIC_URL or "http://localhost:8000"
     html = f"""<!DOCTYPE html>
