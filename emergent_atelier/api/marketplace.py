@@ -28,6 +28,7 @@ import httpx
 from fastapi import APIRouter, Header, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,19 @@ _CLIENT_SECRET = os.getenv("TRMNL_CLIENT_SECRET", "")
 _PUBLIC_URL = os.getenv("TRMNL_PUBLIC_URL", "").rstrip("/")
 
 TRMNL_TOKEN_URL = "https://trmnl.com/oauth/token"
+
+_ALLOWED_REDIRECT_HOSTS = {"trmnl.com", "usetrmnl.com"}
+
+
+def _is_valid_callback(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        return bool(parsed.hostname) and any(
+            parsed.hostname == h or parsed.hostname.endswith(f".{h}")
+            for h in _ALLOWED_REDIRECT_HOSTS
+        )
+    except Exception:
+        return False
 
 # ---------------------------------------------------------------------------
 # Simple JSON-file installation store
@@ -118,6 +132,10 @@ async def install_start(
     """
     if not token or not installation_callback_url:
         raise HTTPException(status_code=400, detail="Missing token or installation_callback_url")
+
+    if not _is_valid_callback(installation_callback_url):
+        logger.warning("install: rejected invalid callback URL: %s", installation_callback_url)
+        raise HTTPException(status_code=400, detail="Invalid callback URL")
 
     if not _CLIENT_ID or not _CLIENT_SECRET:
         logger.warning("TRMNL_CLIENT_ID / TRMNL_CLIENT_SECRET not configured")
