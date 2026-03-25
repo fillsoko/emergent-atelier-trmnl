@@ -21,6 +21,7 @@ import io
 import json
 import logging
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +46,9 @@ _PUBLIC_URL = os.getenv("TRMNL_PUBLIC_URL", "").rstrip("/")
 TRMNL_TOKEN_URL = "https://trmnl.com/oauth/token"
 
 _ALLOWED_REDIRECT_HOSTS = {"trmnl.com", "usetrmnl.com"}
+
+# Token TTL: reject access tokens older than this many days (SOK-159)
+TOKEN_TTL_DAYS = 90
 
 
 def _is_valid_callback(url: str) -> bool:
@@ -166,7 +170,11 @@ async def install_start(
 
     # Persist pending install (success webhook will enrich with user data)
     store = _load_store()
-    store[access_token] = {"access_token": access_token, "status": "pending"}
+    store[access_token] = {
+        "access_token": access_token,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
     _save_store(store)
 
     logger.info("Installation started; redirecting to %s", installation_callback_url)
@@ -214,6 +222,10 @@ async def install_success(
             "timezone": payload.user.time_zone,
         },
         "status": "active",
+        # Preserve created_at from pending record; fall back to now if missing
+        "created_at": store[access_token].get(
+            "created_at", datetime.now(timezone.utc).isoformat()
+        ),
     }
     _save_store(store)
     logger.info("Installation confirmed for uuid=%s", payload.uuid)
@@ -286,9 +298,29 @@ async def get_markup(
     # Validate the caller is an active installed plugin user (SOK-142)
     access_token = authorization.removeprefix("Bearer ").strip()
     store = _load_store()
-    if not access_token or store.get(access_token, {}).get("status") != "active":
+    record = store.get(access_token, {})
+    if not access_token or record.get("status") != "active":
         logger.warning("markup: unauthorized access_token")
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+    # Enforce token TTL (SOK-159): reject tokens older than TOKEN_TTL_DAYS
+    created_at_str = record.get("created_at")
+    if created_at_str:
+        try:
+            created_at = datetime.fromisoformat(created_at_str)
+            age_days = (datetime.now(timezone.utc) - created_at).days
+            if age_days > TOKEN_TTL_DAYS:
+                logger.warning(
+                    "markup: access_token expired (age=%d days, ttl=%d days)",
+                    age_days,
+                    TOKEN_TTL_DAYS,
+                )
+                raise HTTPException(status_code=401, detail="Access token expired")
+        except HTTPException:
+            raise
+        except Exception:
+            logger.warning("markup: could not parse created_at, denying request")
+            raise HTTPException(status_code=401, detail="Unauthorized")
 
     from emergent_atelier.api.server import _store  # avoid circular import
 
