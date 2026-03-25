@@ -25,18 +25,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
 from emergent_atelier.canvas.coordinator import Coordinator
 from emergent_atelier.canvas.state import CanvasStateStore
+from emergent_atelier.api.limiter import limiter
 from emergent_atelier.api.marketplace import router as marketplace_router
 from emergent_atelier.api.votes import router as votes_router
 
 logger = logging.getLogger(__name__)
-
-limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Emergent Atelier", version="0.1.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

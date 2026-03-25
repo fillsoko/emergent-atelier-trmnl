@@ -31,6 +31,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from urllib.parse import urlparse
 
+from emergent_atelier.api.limiter import limiter
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -279,6 +281,7 @@ async def manage() -> HTMLResponse:
 # ---------------------------------------------------------------------------
 
 @router.post("/markup")
+@limiter.limit("20/minute")
 async def get_markup(
     request: Request,
     authorization: str = Header(default=""),
