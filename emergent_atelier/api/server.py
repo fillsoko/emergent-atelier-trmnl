@@ -159,11 +159,12 @@ _CYCLE_SECRET = os.getenv("CYCLE_SECRET", "")
 @app.post("/api/cycle")
 @limiter.limit("5/minute")
 async def trigger_cycle(request: Request, authorization: str = Header(default="")) -> dict[str, str]:
-    """Manually trigger a canvas evolution cycle. Requires Authorization: Bearer <CYCLE_SECRET> when CYCLE_SECRET env var is set."""
-    if _CYCLE_SECRET:
-        token = authorization.removeprefix("Bearer ").strip()
-        if not compare_digest(token, _CYCLE_SECRET):
-            raise HTTPException(status_code=401, detail="Unauthorized")
+    """Manually trigger a canvas evolution cycle. Requires Authorization: Bearer <CYCLE_SECRET>. CYCLE_SECRET must be set."""
+    if not _CYCLE_SECRET:
+        raise HTTPException(status_code=503, detail="Cycle endpoint not configured")
+    token = authorization.removeprefix("Bearer ").strip()
+    if not compare_digest(token, _CYCLE_SECRET):
+        raise HTTPException(status_code=401, detail="Unauthorized")
     assert _coordinator is not None
     asyncio.create_task(_coordinator.run_cycle())
     return {"status": "cycle_triggered"}
