@@ -88,15 +88,31 @@ def _save_store(data: dict[str, Any]) -> None:
 # HMAC-SHA256 signature verification
 # ---------------------------------------------------------------------------
 
+def validate_marketplace_config() -> None:
+    """Raise at startup if TRMNL_CLIENT_SECRET is not configured.
+
+    Called by the server's init_app to fail fast before accepting traffic.
+    """
+    if not _CLIENT_SECRET:
+        raise RuntimeError(
+            "TRMNL_CLIENT_SECRET is not set. "
+            "This secret is required for webhook signature verification. "
+            "Set it in docker-compose.yml or .env before starting the server."
+        )
+
+
 def _verify_trmnl_signature(body: bytes, signature_header: str) -> bool:
     """Verify the HMAC-SHA256 webhook signature sent by TRMNL.
 
     TRMNL signs each webhook request with CLIENT_SECRET using HMAC-SHA256
     and sends the hex digest in the X-Trmnl-Signature header.
-    If CLIENT_SECRET is not configured, verification is skipped.
+    Raises RuntimeError (→ HTTP 500) if CLIENT_SECRET is not configured,
+    rather than silently bypassing verification.
     """
     if not _CLIENT_SECRET:
-        return True
+        raise RuntimeError(
+            "TRMNL_CLIENT_SECRET is not configured; cannot verify webhook signature"
+        )
     expected = hmac.new(_CLIENT_SECRET.encode(), body, hashlib.sha256).hexdigest()
     return hmac.compare_digest(expected, signature_header)
 

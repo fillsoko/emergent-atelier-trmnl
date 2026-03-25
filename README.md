@@ -111,6 +111,16 @@ For **TRMNL X** (grayscale, 1872×1404):
 http://localhost:8000/image.png?dither=true
 ```
 
+### Marketplace plugin (required environment variables)
+
+To list Emergent Atelier in the official TRMNL marketplace, set the following variables in `docker-compose.yml` or `.env` before starting the server:
+
+| Variable | Required | Description |
+|---|---|---|
+| `TRMNL_CLIENT_SECRET` | **required** | Client secret from trmnl.com/plugins/my/\<id\>/edit. Used to verify HMAC-SHA256 webhook signatures. The server **will not start** if this is missing. |
+| `TRMNL_CLIENT_ID` | **required** | Client ID from the same page. |
+| `TRMNL_PUBLIC_URL` | **required** | Public base URL of this server (no trailing slash), e.g. `https://emergent-atelier.example.com`. |
+
 ## Configuration
 
 | Flag | Default | Description |

@@ -31,7 +31,7 @@ from slowapi.errors import RateLimitExceeded
 from emergent_atelier.canvas.coordinator import Coordinator
 from emergent_atelier.canvas.state import CanvasStateStore
 from emergent_atelier.api.limiter import limiter
-from emergent_atelier.api.marketplace import router as marketplace_router
+from emergent_atelier.api.marketplace import router as marketplace_router, validate_marketplace_config
 from emergent_atelier.api.votes import router as votes_router
 
 logger = logging.getLogger(__name__)
@@ -62,6 +62,7 @@ def init_app(
     refresh_interval_sec: int = 900,
 ) -> None:
     global _store, _coordinator, _refresh_interval_sec
+    validate_marketplace_config()
     _store = store
     _coordinator = coordinator
     _refresh_interval_sec = refresh_interval_sec
