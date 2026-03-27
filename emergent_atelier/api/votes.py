@@ -18,6 +18,8 @@ from pathlib import Path
 from typing import Annotated, Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Path as PathParam, Request
+
+from emergent_atelier.api.limiter import limiter
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -107,6 +109,7 @@ _IssueId = Annotated[str, PathParam(max_length=255, pattern=r"^[a-zA-Z0-9_-]+$")
 
 
 @router.post("/{issue_identifier}", response_model=VoteResponse)
+@limiter.limit("20/minute")
 def cast_vote(issue_identifier: _IssueId, body: VoteRequest, request: Request) -> VoteResponse:
     """Cast or change a vote on a roadmap item."""
     ip = _client_ip(request)
@@ -148,6 +151,7 @@ def cast_vote(issue_identifier: _IssueId, body: VoteRequest, request: Request) -
 
 
 @router.get("/{issue_identifier}", response_model=VoteResponse)
+@limiter.limit("30/minute")
 def get_votes(issue_identifier: _IssueId, request: Request) -> VoteResponse:
     """Get vote counts and the caller's own vote for a roadmap item."""
     ip = _client_ip(request)

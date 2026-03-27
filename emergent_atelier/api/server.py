@@ -83,7 +83,8 @@ def get_canvas_png(request: Request, dither: bool = Query(False, description="Ap
 
 
 @app.get("/plugin.json")
-def get_plugin_manifest() -> JSONResponse:
+@limiter.limit("30/minute")
+def get_plugin_manifest(request: Request) -> JSONResponse:
     """TRMNL-compatible plugin manifest."""
     manifest_path = Path(__file__).parent.parent.parent / "trmnl" / "plugin_manifest.json"
     with manifest_path.open() as f:
@@ -182,7 +183,8 @@ if _static_dir.exists():
 
 
 @app.get("/", response_class=HTMLResponse)
-async def dashboard() -> HTMLResponse:
+@limiter.limit("30/minute")
+async def dashboard(request: Request) -> HTMLResponse:
     html_path = _templates_dir / "index.html"
     return HTMLResponse(content=html_path.read_text())
 

@@ -84,8 +84,16 @@ async def main() -> None:
     loop = asyncio.get_event_loop()
     loop.create_task(cycle_runner(args.refresh))
 
-    # Start uvicorn
-    config = uvicorn.Config(app, host=args.host, port=args.port, log_level="info")
+    # Start uvicorn — proxy_headers=True so SlowAPI sees real client IPs
+    # when running behind Caddy (which proxies from localhost:8001).
+    config = uvicorn.Config(
+        app,
+        host=args.host,
+        port=args.port,
+        log_level="info",
+        proxy_headers=True,
+        forwarded_allow_ips="127.0.0.1",
+    )
     server = uvicorn.Server(config)
     await server.serve()
 

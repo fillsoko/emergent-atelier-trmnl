@@ -143,7 +143,9 @@ class _UninstallPayload(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/install", response_class=HTMLResponse)
+@limiter.limit("5/minute")
 async def install_start(
+    request: Request,
     token: str = "",
     installation_callback_url: str = "",
 ) -> Response:
@@ -204,6 +206,7 @@ async def install_start(
 # ---------------------------------------------------------------------------
 
 @router.post("/install/success", status_code=200)
+@limiter.limit("20/minute")
 async def install_success(
     request: Request,
     x_trmnl_signature: str = Header(default=""),
@@ -255,7 +258,8 @@ async def install_success(
 # ---------------------------------------------------------------------------
 
 @router.get("/manage", response_class=HTMLResponse)
-async def manage() -> HTMLResponse:
+@limiter.limit("30/minute")
+async def manage(request: Request) -> HTMLResponse:
     """Plugin management page shown to installed users."""
     public_url = _PUBLIC_URL or "http://localhost:8000"
     html = f"""<!DOCTYPE html>
@@ -363,6 +367,7 @@ async def get_markup(
 # ---------------------------------------------------------------------------
 
 @router.post("/uninstall", status_code=200)
+@limiter.limit("20/minute")
 async def uninstall(
     request: Request,
     x_trmnl_signature: str = Header(default=""),
