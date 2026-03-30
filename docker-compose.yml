@@ -15,7 +15,7 @@ services:
       # TRMNL marketplace credentials — set these after creating the plugin at
       # https://trmnl.com/plugins/my/new
       - TRMNL_CLIENT_ID=${TRMNL_CLIENT_ID:-}
-      - TRMNL_CLIENT_SECRET=${TRMNL_CLIENT_SECRET:-}
+      - TRMNL_CLIENT_SECRET=${TRMNL_CLIENT_SECRET}
       # Public base URL of this server (no trailing slash)
       # e.g. https://emergent-atelier.yourdomain.com
       - TRMNL_PUBLIC_URL=${TRMNL_PUBLIC_URL:-https://your-domain.example.com}
