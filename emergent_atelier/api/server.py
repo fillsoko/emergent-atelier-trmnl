@@ -76,7 +76,8 @@ def init_app(
 @limiter.limit("30/minute")
 def get_canvas_png(request: Request, dither: bool = Query(False, description="Apply Floyd-Steinberg dithering")) -> Response:
     """Current canvas as 1-bit PNG. Consumed by TRMNL plugin."""
-    assert _store is not None
+    if _store is None:
+        raise HTTPException(status_code=503, detail="Service not available")
     version = _store.current()
     data = version.to_png_bytes(dither=dither)
     return Response(content=data, media_type="image/png")
@@ -99,7 +100,8 @@ def get_plugin_manifest(request: Request) -> JSONResponse:
 @app.get("/api/status")
 @limiter.limit("30/minute")
 def get_status(request: Request) -> dict[str, Any]:
-    assert _store is not None and _coordinator is not None
+    if _store is None or _coordinator is None:
+        raise HTTPException(status_code=503, detail="Service not available")
     current = _store.current()
     agents = _coordinator.registered_agents()
     return {
@@ -123,7 +125,8 @@ def get_status(request: Request) -> dict[str, Any]:
 @app.get("/api/history")
 @limiter.limit("20/minute")
 def get_history(request: Request, limit: int = Query(10, le=50)) -> list[dict[str, Any]]:
-    assert _store is not None
+    if _store is None:
+        raise HTTPException(status_code=503, detail="Service not available")
     versions = _store.history()[-limit:]
     result = []
     for v in reversed(versions):
@@ -141,7 +144,8 @@ def get_history(request: Request, limit: int = Query(10, le=50)) -> list[dict[st
 @app.get("/api/agents")
 @limiter.limit("20/minute")
 def get_agents(request: Request) -> list[dict[str, Any]]:
-    assert _coordinator is not None
+    if _coordinator is None:
+        raise HTTPException(status_code=503, detail="Service not available")
     return [
         {
             "name": a.config.name,
@@ -165,7 +169,8 @@ async def trigger_cycle(request: Request, authorization: str = Header(default=""
     token = authorization.removeprefix("Bearer ").strip()
     if not compare_digest(token, _CYCLE_SECRET):
         raise HTTPException(status_code=401, detail="Unauthorized")
-    assert _coordinator is not None
+    if _coordinator is None:
+        raise HTTPException(status_code=503, detail="Service not available")
     asyncio.create_task(_coordinator.run_cycle())
     return {"status": "cycle_triggered"}
 
@@ -195,7 +200,8 @@ async def dashboard(request: Request) -> HTMLResponse:
 
 async def cycle_runner(interval_sec: int) -> None:
     """Runs canvas cycles on the configured interval."""
-    assert _coordinator is not None
+    if _coordinator is None:
+        raise RuntimeError("cycle_runner called before init_app")
     while True:
         try:
             await _coordinator.run_cycle()
