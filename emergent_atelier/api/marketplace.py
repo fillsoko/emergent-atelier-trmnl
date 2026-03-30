@@ -25,6 +25,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+try:
+    from cryptography.fernet import Fernet, InvalidToken
+    _FERNET_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _FERNET_AVAILABLE = False
+
 import httpx
 from fastapi import APIRouter, Header, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -64,24 +70,64 @@ def _is_valid_callback(url: str) -> bool:
         return False
 
 # ---------------------------------------------------------------------------
-# Simple JSON-file installation store
+# Encrypted JSON-file installation store
+#
+# Set TRMNL_STORE_KEY to a Fernet key to enable encryption at rest.
+# Generate one with:  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+# Without this env var, data is stored plaintext with a startup warning.
 # ---------------------------------------------------------------------------
 
 _STORE_PATH = Path(os.getenv("TRMNL_STORE_PATH", "/app/data/trmnl_installs.json"))
 
+_STORE_KEY = os.getenv("TRMNL_STORE_KEY", "")
+_fernet: "Fernet | None" = None
+
+if _STORE_KEY and _FERNET_AVAILABLE:
+    try:
+        _fernet = Fernet(_STORE_KEY.encode())
+    except Exception as _e:
+        logger.error("TRMNL_STORE_KEY is set but invalid: %s — store will use plaintext", _e)
+elif not _STORE_KEY:
+    logger.warning(
+        "TRMNL_STORE_KEY is not set; installation store will be written in plaintext. "
+        "Generate a key with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+    )
+
 
 def _load_store() -> dict[str, Any]:
-    if _STORE_PATH.exists():
-        try:
-            return json.loads(_STORE_PATH.read_text())
-        except Exception:
-            pass
-    return {}
+    if not _STORE_PATH.exists():
+        return {}
+    try:
+        raw = _STORE_PATH.read_bytes()
+        if _fernet is not None:
+            try:
+                plaintext = _fernet.decrypt(raw)
+            except InvalidToken:
+                # Migration path: file may be a legacy plaintext store — re-encrypt it.
+                try:
+                    store = json.loads(raw)
+                    logger.warning(
+                        "store: detected plaintext installation store; re-encrypting with TRMNL_STORE_KEY"
+                    )
+                    _save_store(store)
+                    return store
+                except Exception:
+                    return {}
+            return json.loads(plaintext)
+        return json.loads(raw)
+    except Exception:
+        return {}
 
 
 def _save_store(data: dict[str, Any]) -> None:
     _STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    _STORE_PATH.write_text(json.dumps(data, indent=2))
+    raw = json.dumps(data, indent=2).encode()
+    if _fernet is not None:
+        _STORE_PATH.write_bytes(_fernet.encrypt(raw))
+    else:
+        _STORE_PATH.write_bytes(raw)
+    # Restrict to owner read/write only — defence-in-depth on the VPS filesystem.
+    _STORE_PATH.chmod(0o600)
 
 
 # ---------------------------------------------------------------------------
