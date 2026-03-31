@@ -46,11 +46,25 @@ def parse_args() -> argparse.Namespace:
 
 
 def _check_required_env() -> None:
-    required = ["CYCLE_SECRET", "TRMNL_CLIENT_ID", "TRMNL_CLIENT_SECRET", "TRMNL_STORE_KEY"]
+    # Core secrets — the engine cannot function without these.
+    required = ["CYCLE_SECRET", "TRMNL_STORE_KEY"]
     missing = [k for k in required if not os.getenv(k)]
     if missing:
         logger.error("FATAL: Missing required environment variables: %s", missing)
         sys.exit(1)
+
+    # Marketplace credentials — only needed for the TRMNL OAuth install flow.
+    # The engine can start and serve /image.png without them; the marketplace
+    # endpoints will return 503 until these are configured.
+    marketplace_vars = ["TRMNL_CLIENT_ID", "TRMNL_CLIENT_SECRET"]
+    missing_marketplace = [k for k in marketplace_vars if not os.getenv(k)]
+    if missing_marketplace:
+        logger.warning(
+            "Marketplace credentials not set (%s). "
+            "Core image serving is operational; TRMNL OAuth endpoints will return 503 "
+            "until these are configured.",
+            ", ".join(missing_marketplace),
+        )
 
 
 async def main() -> None:

@@ -135,15 +135,17 @@ def _save_store(data: dict[str, Any]) -> None:
 # ---------------------------------------------------------------------------
 
 def validate_marketplace_config() -> None:
-    """Raise at startup if TRMNL_CLIENT_SECRET is not configured.
+    """Warn at startup if TRMNL_CLIENT_SECRET is not configured.
 
-    Called by the server's init_app to fail fast before accepting traffic.
+    The engine can start and serve /image.png without marketplace credentials.
+    Marketplace OAuth endpoints will return 503 until credentials are set.
     """
     if not _CLIENT_SECRET:
-        raise RuntimeError(
+        import logging as _logging
+        _logging.getLogger(__name__).warning(
             "TRMNL_CLIENT_SECRET is not set. "
-            "This secret is required for webhook signature verification. "
-            "Set it in docker-compose.yml or .env before starting the server."
+            "Marketplace OAuth endpoints will return 503. "
+            "Set it in .env after creating your plugin at usetrmnl.com/plugins/my/new."
         )
     if not _PUBLIC_URL or _PUBLIC_URL.startswith("http://localhost"):
         logger.warning(
