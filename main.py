@@ -46,7 +46,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def _check_required_env() -> None:
-    required = ["CYCLE_SECRET", "TRMNL_CLIENT_ID", "TRMNL_CLIENT_SECRET"]
+    required = ["CYCLE_SECRET", "TRMNL_CLIENT_ID", "TRMNL_CLIENT_SECRET", "TRMNL_STORE_KEY"]
     missing = [k for k in required if not os.getenv(k)]
     if missing:
         logger.error("FATAL: Missing required environment variables: %s", missing)

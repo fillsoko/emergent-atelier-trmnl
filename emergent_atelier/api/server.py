@@ -22,6 +22,7 @@ from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -35,6 +36,7 @@ from emergent_atelier.api.marketplace import router as marketplace_router, valid
 from emergent_atelier.api.votes import router as votes_router
 
 logger = logging.getLogger(__name__)
+
 _DEFAULT_CORS_ORIGINS = "https://emergentatelier.dev,https://www.emergentatelier.dev"
 _cors_origins = [
     o.strip()
@@ -42,9 +44,33 @@ _cors_origins = [
     if o.strip()
 ]
 
+# ---------------------------------------------------------------------------
+# Proxy-secret guard (SOK-202)
+#
+# When REQUIRE_PROXY_SECRET=true, every request must carry the header
+# X-Proxy-Secret matching CADDY_PROXY_SECRET.  This ensures the app only
+# serves traffic that arrived through the Caddy reverse proxy.
+#
+# Caddy config snippet to inject the header:
+#   header_up X-Proxy-Secret {$CADDY_PROXY_SECRET}
+# ---------------------------------------------------------------------------
+
+_CADDY_PROXY_SECRET = os.getenv("CADDY_PROXY_SECRET", "")
+_REQUIRE_PROXY_SECRET = os.getenv("REQUIRE_PROXY_SECRET", "false").lower() == "true"
+
+
+class ProxySecretMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if _REQUIRE_PROXY_SECRET:
+            incoming = request.headers.get("x-proxy-secret", "")
+            if not _CADDY_PROXY_SECRET or not compare_digest(incoming, _CADDY_PROXY_SECRET):
+                return Response(status_code=403, content="Forbidden")
+        return await call_next(request)
+
 app = FastAPI(title="Emergent Atelier", version="0.1.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(ProxySecretMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
