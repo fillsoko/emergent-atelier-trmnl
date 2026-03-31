@@ -145,6 +145,12 @@ def validate_marketplace_config() -> None:
             "This secret is required for webhook signature verification. "
             "Set it in docker-compose.yml or .env before starting the server."
         )
+    if not _PUBLIC_URL or _PUBLIC_URL.startswith("http://localhost"):
+        logger.warning(
+            "TRMNL_PUBLIC_URL is not set or falls back to localhost. "
+            "Image preview URLs in the /manage page will be broken in production. "
+            "Set TRMNL_PUBLIC_URL to your public server address (e.g. https://emergent-atelier.example.com)."
+        )
 
 
 def _verify_trmnl_signature(body: bytes, signature_header: str) -> bool:
