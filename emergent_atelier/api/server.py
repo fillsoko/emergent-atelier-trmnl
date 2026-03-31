@@ -35,15 +35,19 @@ from emergent_atelier.api.marketplace import router as marketplace_router, valid
 from emergent_atelier.api.votes import router as votes_router
 
 logger = logging.getLogger(__name__)
+_DEFAULT_CORS_ORIGINS = "https://emergentatelier.dev,https://www.emergentatelier.dev"
+_cors_origins = [
+    o.strip()
+    for o in os.getenv("CORS_ORIGINS", _DEFAULT_CORS_ORIGINS).split(",")
+    if o.strip()
+]
+
 app = FastAPI(title="Emergent Atelier", version="0.1.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://emergentatelier.dev",
-        "https://www.emergentatelier.dev",
-    ],
+    allow_origins=_cors_origins,
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
