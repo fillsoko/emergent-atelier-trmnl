@@ -5,7 +5,12 @@
 set -euo pipefail
 
 REPO_URL="https://github.com/fillsoko/emergent-atelier-trmnl.git"
-DEPLOY_DIR="/opt/emergent-atelier-trmnl"
+# Detect existing clone; fall back to /opt if not found in home directory
+if [ -d "$HOME/emergent-atelier-trmnl/.git" ]; then
+  DEPLOY_DIR="$HOME/emergent-atelier-trmnl"
+else
+  DEPLOY_DIR="/opt/emergent-atelier-trmnl"
+fi
 TRMNL_DOMAIN="emergent-atelier.filipsokolowski.com"
 CADDY_PROXY_SECRET="REDACTED_PROXY_SECRET"
 
