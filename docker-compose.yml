@@ -24,11 +24,11 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-https://emergentatelier.dev,https://www.emergentatelier.dev}
       # Encryption key for the installation store (user PII at rest). REQUIRED.
       # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-      - TRMNL_STORE_KEY=${TRMNL_STORE_KEY}
-      # Shared secret between Caddy and the app (SOC-202: proxy guard).
+      - TRMNL_STORE_KEY=${TRMNL_STORE_KEY:?TRMNL_STORE_KEY is required. Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"}
+      # Shared secret between Caddy and the app (proxy guard).
       # Generate with: openssl rand -hex 32
       # Set in Caddy config: header_up X-Proxy-Secret <value>
-      # Set REQUIRE_PROXY_SECRET=true in .env to enforce (recommended in production).
+      # REQUIRE_PROXY_SECRET defaults to true — set to false only in local dev.
       - CADDY_PROXY_SECRET=${CADDY_PROXY_SECRET:-}
-      - REQUIRE_PROXY_SECRET=${REQUIRE_PROXY_SECRET:-false}
+      - REQUIRE_PROXY_SECRET=${REQUIRE_PROXY_SECRET:-true}
     restart: unless-stopped

@@ -46,12 +46,26 @@ def parse_args() -> argparse.Namespace:
 
 
 def _check_required_env() -> None:
+    # Restrict file creation permissions to owner-only for all files written by
+    # this process (SQLite databases, data files, etc.).
+    os.umask(0o077)
+
     # Core secrets — the engine cannot function without these.
     required = ["CYCLE_SECRET", "TRMNL_STORE_KEY"]
     missing = [k for k in required if not os.getenv(k)]
     if missing:
         logger.error("FATAL: Missing required environment variables: %s", missing)
         sys.exit(1)
+
+    # Proxy secret enforcement — when REQUIRE_PROXY_SECRET=true, CADDY_PROXY_SECRET
+    # must also be set, otherwise every request would be rejected with 403.
+    if os.getenv("REQUIRE_PROXY_SECRET", "true").lower() == "true":
+        if not os.getenv("CADDY_PROXY_SECRET"):
+            logger.error(
+                "FATAL: REQUIRE_PROXY_SECRET=true but CADDY_PROXY_SECRET is not set. "
+                "Generate with: openssl rand -hex 32 and configure in Caddy."
+            )
+            sys.exit(1)
 
     # Marketplace credentials — only needed for the TRMNL OAuth install flow.
     # The engine can start and serve /image.png without them; the marketplace

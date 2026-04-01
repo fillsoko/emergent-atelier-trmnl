@@ -43,6 +43,17 @@ _cors_origins = [
     for o in os.getenv("CORS_ORIGINS", _DEFAULT_CORS_ORIGINS).split(",")
     if o.strip()
 ]
+if "*" in _cors_origins:
+    raise RuntimeError(
+        "CORS_ORIGINS must not include wildcard '*' — this would allow any origin "
+        "to call the API. Set explicit allowed origins instead."
+    )
+if any(o in ("http://localhost", "http://127.0.0.1") for o in _cors_origins):
+    logger.warning(
+        "CORS_ORIGINS includes a localhost origin (%s). "
+        "Ensure this is intentional and not a production misconfiguration.",
+        [o for o in _cors_origins if o.startswith("http://localhost") or o.startswith("http://127.0.0.1")],
+    )
 
 # ---------------------------------------------------------------------------
 # Proxy-secret guard (SOK-202)
