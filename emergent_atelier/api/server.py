@@ -67,7 +67,7 @@ if any(o in ("http://localhost", "http://127.0.0.1") for o in _cors_origins):
 # ---------------------------------------------------------------------------
 
 _CADDY_PROXY_SECRET = os.getenv("CADDY_PROXY_SECRET", "")
-_REQUIRE_PROXY_SECRET = os.getenv("REQUIRE_PROXY_SECRET", "false").lower() == "true"
+_REQUIRE_PROXY_SECRET = os.getenv("REQUIRE_PROXY_SECRET", "true").lower() == "true"
 
 
 class ProxySecretMiddleware(BaseHTTPMiddleware):

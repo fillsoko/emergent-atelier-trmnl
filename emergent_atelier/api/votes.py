@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 import sqlite3
 import time
 from pathlib import Path
@@ -34,7 +35,12 @@ _DB_PATH = Path("data/votes.db")
 
 def _get_db() -> sqlite3.Connection:
     _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(_DB_PATH), timeout=10.0, check_same_thread=False)
+    # Set restrictive umask so the DB file is created 0o600 (not world-readable).
+    _old_umask = os.umask(0o077)
+    try:
+        conn = sqlite3.connect(str(_DB_PATH), timeout=10.0, check_same_thread=False)
+    finally:
+        os.umask(_old_umask)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.row_factory = sqlite3.Row
     return conn
