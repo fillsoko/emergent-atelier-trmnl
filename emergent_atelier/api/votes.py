@@ -73,8 +73,11 @@ except Exception as _e:
 # Helpers
 # ---------------------------------------------------------------------------
 
+_VOTE_IP_SALT = os.environ.get("VOTE_IP_SALT", "")
+
+
 def _hash_ip(ip: str) -> str:
-    return hashlib.sha256(ip.encode()).hexdigest()
+    return hashlib.sha256((_VOTE_IP_SALT + ip).encode()).hexdigest()
 
 
 def _client_ip(request: Request) -> str:

@@ -12,6 +12,9 @@ services:
       - PYTHONUNBUFFERED=1
       # Required secrets — generate with: openssl rand -hex 32
       - CYCLE_SECRET=${CYCLE_SECRET}
+      # Salt for IP address hashing in votes.db (prevents rainbow table attacks).
+      # Generate with: openssl rand -hex 32
+      - VOTE_IP_SALT=${VOTE_IP_SALT:-}
       # TRMNL marketplace credentials — set these after creating the plugin at
       # https://trmnl.com/plugins/my/new
       - TRMNL_CLIENT_ID=${TRMNL_CLIENT_ID:-}

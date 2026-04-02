@@ -406,7 +406,6 @@
     </div>
 
     <div class="controls">
-      <button id="btn-cycle">&#9654; Run Cycle</button>
       <button id="btn-refresh">&#8635; Refresh</button>
       <span class="status-msg" id="status-msg"></span>
     </div>
@@ -559,18 +558,6 @@
     function refreshCanvas() {
       liveCanvas.src = '/image.png?t=' + Date.now();
     }
-
-    document.getElementById('btn-cycle').addEventListener('click', async function () {
-      statusMsg.textContent = 'Triggering cycle\u2026';
-      await fetch('/api/cycle', { method: 'POST' });
-      setTimeout(function () {
-        refreshCanvas();
-        fetchStatus();
-        fetchHistory();
-        statusMsg.textContent = 'Done.';
-        setTimeout(function () { statusMsg.textContent = ''; }, 2000);
-      }, 800);
-    });
 
     document.getElementById('btn-refresh').addEventListener('click', function () {
       refreshCanvas();
