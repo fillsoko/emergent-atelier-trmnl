@@ -20,7 +20,7 @@ from hmac import compare_digest
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Header, HTTPException, Query, Request, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -68,6 +68,40 @@ if any(o in ("http://localhost", "http://127.0.0.1") for o in _cors_origins):
 
 _CADDY_PROXY_SECRET = os.getenv("CADDY_PROXY_SECRET", "")
 _REQUIRE_PROXY_SECRET = os.getenv("REQUIRE_PROXY_SECRET", "true").lower() == "true"
+
+
+# ---------------------------------------------------------------------------
+# Dashboard auth (SOK-221)
+#
+# When DASHBOARD_SECRET is set, the dashboard and internal read API endpoints
+# (GET /api/status, GET /api/history, GET /api/agents) require HTTP Basic Auth.
+# Any username is accepted; the password must equal DASHBOARD_SECRET.
+#
+# Example:
+#   DASHBOARD_SECRET=$(openssl rand -hex 32)
+# ---------------------------------------------------------------------------
+
+_DASHBOARD_SECRET = os.getenv("DASHBOARD_SECRET", "")
+
+
+def _require_dashboard_auth(request: Request) -> None:
+    """Raise 401 if DASHBOARD_SECRET is set and the request lacks valid Basic Auth."""
+    if not _DASHBOARD_SECRET:
+        return
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Basic "):
+        try:
+            decoded = base64.b64decode(auth[6:]).decode("utf-8", errors="replace")
+            _username, _, password = decoded.partition(":")
+            if compare_digest(password, _DASHBOARD_SECRET):
+                return
+        except Exception:
+            pass
+    raise HTTPException(
+        status_code=401,
+        detail="Unauthorized",
+        headers={"WWW-Authenticate": 'Basic realm="Emergent Atelier"'},
+    )
 
 
 class ProxySecretMiddleware(BaseHTTPMiddleware):
@@ -156,7 +190,7 @@ def get_plugin_manifest(request: Request) -> JSONResponse:
 
 @app.get("/api/status")
 @limiter.limit("30/minute")
-def get_status(request: Request) -> dict[str, Any]:
+def get_status(request: Request, _auth: None = Depends(_require_dashboard_auth)) -> dict[str, Any]:
     if _store is None or _coordinator is None:
         raise HTTPException(status_code=503, detail="Service not available")
     current = _store.current()
@@ -181,7 +215,7 @@ def get_status(request: Request) -> dict[str, Any]:
 
 @app.get("/api/history")
 @limiter.limit("20/minute")
-def get_history(request: Request, limit: int = Query(10, le=50)) -> list[dict[str, Any]]:
+def get_history(request: Request, limit: int = Query(10, le=50), _auth: None = Depends(_require_dashboard_auth)) -> list[dict[str, Any]]:
     if _store is None:
         raise HTTPException(status_code=503, detail="Service not available")
     versions = _store.history()[-limit:]
@@ -200,7 +234,7 @@ def get_history(request: Request, limit: int = Query(10, le=50)) -> list[dict[st
 
 @app.get("/api/agents")
 @limiter.limit("20/minute")
-def get_agents(request: Request) -> list[dict[str, Any]]:
+def get_agents(request: Request, _auth: None = Depends(_require_dashboard_auth)) -> list[dict[str, Any]]:
     if _coordinator is None:
         raise HTTPException(status_code=503, detail="Service not available")
     return [
@@ -246,7 +280,7 @@ if _static_dir.exists():
 
 @app.get("/", response_class=HTMLResponse)
 @limiter.limit("30/minute")
-async def dashboard(request: Request) -> HTMLResponse:
+async def dashboard(request: Request, _auth: None = Depends(_require_dashboard_auth)) -> HTMLResponse:
     html_path = _templates_dir / "index.html"
     return HTMLResponse(content=html_path.read_text())
 
