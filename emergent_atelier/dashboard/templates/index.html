@@ -508,8 +508,20 @@
       data.agents.forEach(function (a) {
         var card = document.createElement('div');
         card.className = 'agent-card' + (a.enabled ? ' enabled' : '');
-        card.innerHTML = '<div class="name"><span class="status"></span>' + a.name + '</div>'
-          + '<div class="role">' + a.role + ' \xb7 ' + a.algorithm + '</div>';
+
+        var nameDiv = document.createElement('div');
+        nameDiv.className = 'name';
+        var statusSpan = document.createElement('span');
+        statusSpan.className = 'status';
+        nameDiv.appendChild(statusSpan);
+        nameDiv.appendChild(document.createTextNode(a.name));
+
+        var roleDiv = document.createElement('div');
+        roleDiv.className = 'role';
+        roleDiv.textContent = a.role + ' \xb7 ' + a.algorithm;
+
+        card.appendChild(nameDiv);
+        card.appendChild(roleDiv);
         agentsList.appendChild(card);
       });
     }
@@ -521,10 +533,25 @@
       frames.forEach(function (f) {
         var el = document.createElement('div');
         el.className = 'strip-frame';
-        var ts = new Date(f.timestamp * 1000).toLocaleTimeString();
-        el.innerHTML = '<img src="data:image/png;base64,' + f.thumbnail_b64 + '" alt="cycle ' + f.cycle + '" />'
-          + '<div class="meta"><span>#' + f.cycle + '</span>'
-          + '<span class="delta"> \xb7 \u0394' + f.delta_pct.toFixed(1) + '%</span></div>';
+
+        var img = document.createElement('img');
+        img.src = 'data:image/png;base64,' + f.thumbnail_b64;
+        img.alt = 'cycle ' + f.cycle;
+
+        var meta = document.createElement('div');
+        meta.className = 'meta';
+
+        var cycleSpan = document.createElement('span');
+        cycleSpan.textContent = '#' + f.cycle;
+
+        var deltaSpan = document.createElement('span');
+        deltaSpan.className = 'delta';
+        deltaSpan.textContent = ' \xb7 \u0394' + f.delta_pct.toFixed(1) + '%';
+
+        meta.appendChild(cycleSpan);
+        meta.appendChild(deltaSpan);
+        el.appendChild(img);
+        el.appendChild(meta);
         filmstrip.appendChild(el);
       });
     }

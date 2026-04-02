@@ -78,9 +78,25 @@ class ProxySecretMiddleware(BaseHTTPMiddleware):
                 return Response(status_code=403, content="Forbidden")
         return await call_next(request)
 
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "img-src 'self' data:; "
+            "style-src 'self' 'unsafe-inline'; "
+            "script-src 'self' 'unsafe-inline'"
+        )
+        return response
+
+
 app = FastAPI(title="Emergent Atelier", version="0.1.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(ProxySecretMiddleware)
 app.add_middleware(
     CORSMiddleware,
