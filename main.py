@@ -67,6 +67,19 @@ def _check_required_env() -> None:
             )
             sys.exit(1)
 
+    # Dashboard auth — strongly recommended in production (SOK-232).
+    # Without DASHBOARD_SECRET, /api/status, /api/history, /api/agents, and the
+    # dashboard are accessible to anyone who reaches the app (bypassing the proxy
+    # secret guard for read endpoints). Warn loudly in production mode.
+    if not os.getenv("DASHBOARD_SECRET"):
+        if os.getenv("REQUIRE_PROXY_SECRET", "true").lower() == "true":
+            logger.warning(
+                "DASHBOARD_SECRET is not set. Internal API endpoints (/api/status, "
+                "/api/history, /api/agents) and the dashboard are unprotected beyond "
+                "the proxy secret. Set DASHBOARD_SECRET in production: "
+                "openssl rand -hex 32"
+            )
+
     # Marketplace credentials — only needed for the TRMNL OAuth install flow.
     # The engine can start and serve /image.png without them; the marketplace
     # endpoints will return 503 until these are configured.
