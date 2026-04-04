@@ -62,9 +62,13 @@ TOKEN_TTL_DAYS = 90
 def _is_valid_callback(url: str) -> bool:
     try:
         parsed = urlparse(url)
-        return bool(parsed.hostname) and any(
-            parsed.hostname == h or parsed.hostname.endswith(f".{h}")
-            for h in _ALLOWED_REDIRECT_HOSTS
+        return (
+            parsed.scheme == "https"
+            and bool(parsed.hostname)
+            and any(
+                parsed.hostname == h or parsed.hostname.endswith(f".{h}")
+                for h in _ALLOWED_REDIRECT_HOSTS
+            )
         )
     except Exception:
         return False
@@ -380,24 +384,27 @@ async def get_markup(
         logger.warning("markup: unauthorized access_token")
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    # Enforce token TTL (SOK-159): reject tokens older than TOKEN_TTL_DAYS
+    # Enforce token TTL (SOK-159): reject tokens older than TOKEN_TTL_DAYS.
+    # Fail closed: created_at must be present and valid (SOK-248).
     created_at_str = record.get("created_at")
-    if created_at_str:
-        try:
-            created_at = datetime.fromisoformat(created_at_str)
-            age_days = (datetime.now(timezone.utc) - created_at).days
-            if age_days > TOKEN_TTL_DAYS:
-                logger.warning(
-                    "markup: access_token expired (age=%d days, ttl=%d days)",
-                    age_days,
-                    TOKEN_TTL_DAYS,
-                )
-                raise HTTPException(status_code=401, detail="Access token expired")
-        except HTTPException:
-            raise
-        except Exception:
-            logger.warning("markup: could not parse created_at, denying request")
-            raise HTTPException(status_code=401, detail="Unauthorized")
+    if not created_at_str:
+        logger.warning("markup: created_at missing from installation record, denying")
+        raise HTTPException(status_code=401, detail="Token validation error")
+    try:
+        created_at = datetime.fromisoformat(created_at_str)
+        age_days = (datetime.now(timezone.utc) - created_at).days
+        if age_days > TOKEN_TTL_DAYS:
+            logger.warning(
+                "markup: access_token expired (age=%d days, ttl=%d days)",
+                age_days,
+                TOKEN_TTL_DAYS,
+            )
+            raise HTTPException(status_code=401, detail="Access token expired")
+    except HTTPException:
+        raise
+    except Exception:
+        logger.warning("markup: could not parse created_at, denying request")
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
     from emergent_atelier.api.server import _store  # avoid circular import
 

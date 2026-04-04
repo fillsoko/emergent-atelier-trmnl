@@ -74,6 +74,11 @@ except Exception as _e:
 # ---------------------------------------------------------------------------
 
 _VOTE_IP_SALT = os.environ.get("VOTE_IP_SALT", "")
+if not _VOTE_IP_SALT:
+    raise RuntimeError(
+        "VOTE_IP_SALT environment variable is required and must not be empty. "
+        "Generate one with: openssl rand -hex 32"
+    )
 
 
 def _hash_ip(ip: str) -> str:
