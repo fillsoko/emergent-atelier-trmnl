@@ -1,0 +1,20 @@
+# Gitleaks configuration for emergent-atelier-trmnl
+# https://github.com/gitleaks/gitleaks
+
+title = "emergent-atelier gitleaks config"
+
+[extend]
+# Use the default ruleset as a base
+useDefault = true
+
+[[rules]]
+id = "generic-hex-secret"
+description = "High-entropy hex string that may be a secret"
+regex = '''(?i)(secret|key|token|salt|password|passwd|pwd)\s*[=:]\s*['"]?[0-9a-f]{32,64}['"]?'''
+tags = ["secret", "hex"]
+
+[[rules]]
+id = "fernet-key"
+description = "Fernet encryption key"
+regex = '''[A-Za-z0-9_\-]{43}='''
+tags = ["secret", "fernet"]

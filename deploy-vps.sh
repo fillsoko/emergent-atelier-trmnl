@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# deploy-vps.sh — Complete one-shot deployment for emergent-atelier on REDACTED_VPS_IP
+# deploy-vps.sh — Complete one-shot deployment for emergent-atelier
 # Run this script on the VPS as root or a user with docker access.
 # Usage: bash deploy-vps.sh
 set -euo pipefail
@@ -12,7 +12,15 @@ else
   DEPLOY_DIR="/opt/emergent-atelier-trmnl"
 fi
 TRMNL_DOMAIN="emergent-atelier.filipsokolowski.com"
-CADDY_PROXY_SECRET="REDACTED_PROXY_SECRET"
+
+# CADDY_PROXY_SECRET must be pre-set in the environment or loaded from .env.
+# Generate with: openssl rand -hex 32
+if [ -z "${CADDY_PROXY_SECRET:-}" ]; then
+  echo "ERROR: CADDY_PROXY_SECRET must be set in the environment before running this script."
+  echo "  source .env && bash deploy-vps.sh"
+  echo "  # or: export CADDY_PROXY_SECRET=\$(openssl rand -hex 32)"
+  exit 1
+fi
 
 echo "=== Emergent Atelier VPS Deploy ==="
 
@@ -27,27 +35,29 @@ fi
 
 cd "$DEPLOY_DIR"
 
-# 2. Write .env (secrets pre-generated, TRMNL marketplace creds optional for now)
+# 2. Require .env — never generate secrets automatically.
+# On first deploy, copy .env.example and fill in all values before running.
 if [ ! -f .env ]; then
-  echo "-> Writing .env..."
-  cat > .env <<'ENVEOF'
-CYCLE_SECRET=REDACTED_CYCLE_SECRET
-TRMNL_STORE_KEY=REDACTED_STORE_KEY
-CADDY_PROXY_SECRET=REDACTED_PROXY_SECRET
-REQUIRE_PROXY_SECRET=true
-TRMNL_PUBLIC_URL=https://emergent-atelier.filipsokolowski.com
-TRMNL_CLIENT_ID=
-TRMNL_CLIENT_SECRET=
-ENVEOF
+  echo "ERROR: .env not found in $DEPLOY_DIR."
+  echo "  Create it from the template:"
+  echo "    cp .env.example .env"
+  echo "    \$EDITOR .env"
+  echo ""
+  echo "Required secrets to generate:"
+  echo "  CYCLE_SECRET:       openssl rand -hex 32"
+  echo "  CADDY_PROXY_SECRET: openssl rand -hex 32"
+  echo "  TRMNL_STORE_KEY:    python3 -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+  echo "  VOTE_IP_SALT:       openssl rand -hex 32"
+  exit 1
 else
-  echo "-> .env already exists, skipping (edit manually if needed)"
+  echo "-> .env found"
 fi
 
 # 3. Add Caddy reverse-proxy entry (idempotent)
 CADDY_ENTRY="${TRMNL_DOMAIN} {
     header Strict-Transport-Security \"max-age=31536000; includeSubDomains\"
     reverse_proxy localhost:8001 {
-        header_up X-Proxy-Secret ${CADDY_PROXY_SECRET}
+        header_up X-Proxy-Secret \${CADDY_PROXY_SECRET}
     }
 }"
 
