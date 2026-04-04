@@ -1,0 +1,310 @@
+:root {
+  --ink: #0d0d0d;
+  --paper: #f5f0e8;
+  --mid: #888;
+  --accent: #222;
+  --border: #ccc;
+  --radius: 4px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: 'Space Mono', 'Courier New', monospace;
+  font-size: 13px;
+  min-height: 100vh;
+}
+
+/* ── Hero Slider ────────────────────────────────── */
+.hero {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #080808;
+  border-bottom: 1px solid #222;
+}
+
+.hero-track {
+  display: flex;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.hero-slide {
+  flex: 0 0 100%;
+  position: relative;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .hero-slide { min-height: 340px; }
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  opacity: 0.35;
+}
+
+.hero-bg-placeholder {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    #0d0d0d 0px,
+    #0d0d0d 4px,
+    #111 4px,
+    #111 8px
+  );
+  opacity: 0.7;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 48px 64px;
+  max-width: 720px;
+}
+
+@media (max-width: 640px) {
+  .hero-content { padding: 32px 24px; }
+}
+
+.hero-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--mid);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.hero-headline {
+  font-size: clamp(22px, 4vw, 38px);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--paper);
+  margin-bottom: 16px;
+  font-weight: bold;
+}
+
+.hero-body {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #b8b0a0;
+  margin-bottom: 28px;
+  max-width: 520px;
+}
+
+.hero-cta {
+  display: inline-block;
+  background: var(--paper);
+  color: var(--ink);
+  border: none;
+  padding: 10px 24px;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.hero-cta:hover { opacity: 0.85; }
+.hero-cta:active { opacity: 0.7; }
+
+/* Prev / Next arrows */
+.hero-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  background: rgba(13, 13, 13, 0.7);
+  border: 1px solid #333;
+  color: var(--paper);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: var(--radius);
+  font-size: 16px;
+  transition: background 0.15s, border-color 0.15s;
+  user-select: none;
+}
+.hero-arrow:hover { background: rgba(40, 40, 40, 0.9); border-color: #555; }
+.hero-arrow.prev { left: 16px; }
+.hero-arrow.next { right: 16px; }
+
+@media (max-width: 640px) {
+  .hero-arrow { display: none; }
+}
+
+/* Dot indicators */
+.hero-dots {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+}
+.hero-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #444;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s, transform 0.2s;
+}
+.hero-dot.active {
+  background: var(--paper);
+  transform: scale(1.3);
+}
+
+/* Slide counter */
+.hero-counter {
+  position: absolute;
+  bottom: 14px;
+  right: 20px;
+  z-index: 10;
+  font-size: 10px;
+  color: #555;
+  letter-spacing: 0.1em;
+}
+
+/* ── Existing dashboard styles ─────────────────── */
+main { padding: 24px; display: grid; gap: 24px; }
+
+/* Canvas panel */
+.canvas-panel {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 16px;
+}
+.canvas-wrap {
+  border: 1px solid #333;
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  position: relative;
+}
+.canvas-wrap img {
+  max-width: 100%;
+  image-rendering: pixelated;
+  display: block;
+}
+.canvas-label {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-size: 10px;
+  color: #555;
+}
+
+/* Agents panel */
+.agents-panel { display: flex; flex-direction: column; gap: 8px; }
+.agents-panel h3 {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--mid);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.agent-card {
+  background: #181818;
+  border: 1px solid #333;
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.agent-card .name { font-size: 12px; font-weight: bold; }
+.agent-card .role { font-size: 10px; color: var(--mid); margin-top: 2px; }
+.agent-card .status {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #555;
+  margin-right: 6px;
+}
+.agent-card.enabled .status { background: #4ade80; }
+
+/* Filmstrip */
+.filmstrip-section h3 {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--mid);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.filmstrip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+.filmstrip::-webkit-scrollbar { height: 4px; }
+.filmstrip::-webkit-scrollbar-thumb { background: #333; }
+.strip-frame {
+  flex-shrink: 0;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.strip-frame:hover { border-color: #666; }
+.strip-frame img {
+  display: block;
+  width: 160px;
+  height: 96px;
+  image-rendering: pixelated;
+}
+.strip-frame .meta {
+  padding: 4px 8px;
+  font-size: 10px;
+  color: var(--mid);
+  white-space: nowrap;
+}
+.strip-frame .delta { color: #aaa; }
+
+/* Controls bar */
+.controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+button {
+  background: #222;
+  border: 1px solid #444;
+  color: var(--paper);
+  padding: 6px 16px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  letter-spacing: 0.05em;
+}
+button:hover { background: #333; }
+button:active { background: #111; }
+.status-msg { color: var(--mid); font-size: 11px; margin-left: 8px; }
+
+/* Inline code snippet */
+.code-snippet {
+  font-size: 11px;
+  background: #1a1a1a;
+  padding: 1px 5px;
+  border-radius: 2px;
+}
