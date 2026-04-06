@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt requirements-lock.txt ./
+# Upgrade pip/setuptools/wheel first to fix CVEs (CVE-2025-8869, CVE-2026-1703, PYSEC-2025-49, CVE-2024-6345, CVE-2026-24049)
+RUN pip install --no-cache-dir --upgrade pip==26.0 setuptools==78.1.1 wheel==0.46.2
 RUN pip install --no-cache-dir -r requirements-lock.txt
 
 COPY . .
