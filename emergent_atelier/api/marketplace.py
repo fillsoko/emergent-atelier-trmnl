@@ -358,8 +358,18 @@ async def manage(request: Request) -> HTMLResponse:
 # Markup — TRMNL polls this every 15 min for fresh HTML content
 # ---------------------------------------------------------------------------
 
+def _markup_token_key(request: Request) -> str:
+    """Rate-limit key for /markup: the Bearer access token, or IP as fallback."""
+    token = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+    if token:
+        return f"token:{token}"
+    from emergent_atelier.api.limiter import _client_host
+    return _client_host(request)
+
+
 @router.post("/markup")
-@limiter.limit("20/minute")
+@limiter.limit("2/minute", key_func=_markup_token_key)
+@limiter.limit("200/minute")
 async def get_markup(
     request: Request,
     authorization: str = Header(default=""),
