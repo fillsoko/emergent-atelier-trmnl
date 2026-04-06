@@ -71,9 +71,9 @@ _REQUIRE_PROXY_SECRET = os.getenv("REQUIRE_PROXY_SECRET", "true").lower() == "tr
 
 
 # ---------------------------------------------------------------------------
-# Dashboard auth (SOK-221)
+# Dashboard auth (SOK-221, SOK-288)
 #
-# When DASHBOARD_SECRET is set, the dashboard and internal read API endpoints
+# DASHBOARD_SECRET is required. The dashboard and internal read API endpoints
 # (GET /api/status, GET /api/history, GET /api/agents) require HTTP Basic Auth.
 # Any username is accepted; the password must equal DASHBOARD_SECRET.
 #
@@ -82,12 +82,15 @@ _REQUIRE_PROXY_SECRET = os.getenv("REQUIRE_PROXY_SECRET", "true").lower() == "tr
 # ---------------------------------------------------------------------------
 
 _DASHBOARD_SECRET = os.getenv("DASHBOARD_SECRET", "")
+if not _DASHBOARD_SECRET:
+    raise RuntimeError(
+        "DASHBOARD_SECRET is required but not set. "
+        "Generate one with: openssl rand -hex 32"
+    )
 
 
 def _require_dashboard_auth(request: Request) -> None:
-    """Raise 401 if DASHBOARD_SECRET is set and the request lacks valid Basic Auth."""
-    if not _DASHBOARD_SECRET:
-        return
+    """Raise 401 if the request lacks valid Basic Auth matching DASHBOARD_SECRET."""
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Basic "):
         try:

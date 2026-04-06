@@ -34,7 +34,7 @@ services:
       # REQUIRE_PROXY_SECRET defaults to true — set to false only in local dev.
       - CADDY_PROXY_SECRET=${CADDY_PROXY_SECRET:-}
       - REQUIRE_PROXY_SECRET=${REQUIRE_PROXY_SECRET:-true}
-      # HTTP Basic Auth password for dashboard + internal API endpoints (optional, recommended).
+      # HTTP Basic Auth password for dashboard + internal API endpoints. REQUIRED.
       # Generate with: openssl rand -hex 32
-      - DASHBOARD_SECRET=${DASHBOARD_SECRET:-}
+      - DASHBOARD_SECRET=${DASHBOARD_SECRET:?DASHBOARD_SECRET is required. Generate with: openssl rand -hex 32}
     restart: unless-stopped
