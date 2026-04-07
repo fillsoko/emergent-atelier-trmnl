@@ -62,7 +62,11 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
 
 
 # Initialise schema on module import so it's ready before first request.
+# Also fix permissions on any pre-existing DB file created before the umask
+# restriction was in place (old files may be 0o644 / world-readable).
 try:
+    if _DB_PATH.exists():
+        _DB_PATH.chmod(0o600)
     with _get_db() as _init_conn:
         _ensure_schema(_init_conn)
 except Exception as _e:

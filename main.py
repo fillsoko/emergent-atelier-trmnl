@@ -51,7 +51,7 @@ def _check_required_env() -> None:
     os.umask(0o077)
 
     # Core secrets — the engine cannot function without these.
-    required = ["CYCLE_SECRET", "TRMNL_STORE_KEY"]
+    required = ["CYCLE_SECRET", "TRMNL_STORE_KEY", "VOTE_IP_SALT"]
     missing = [k for k in required if not os.getenv(k)]
     if missing:
         logger.error("FATAL: Missing required environment variables: %s", missing)

@@ -11,7 +11,13 @@ if [ -d "$HOME/emergent-atelier-trmnl/.git" ]; then
 else
   DEPLOY_DIR="/opt/emergent-atelier-trmnl"
 fi
-TRMNL_DOMAIN="emergent-atelier.filipsokolowski.com"
+# Read deployment domain from environment; must be set by the operator.
+TRMNL_DOMAIN="${TRMNL_DOMAIN:-}"
+if [ -z "$TRMNL_DOMAIN" ]; then
+  echo "ERROR: TRMNL_DOMAIN is not set."
+  echo "  Export it before running: export TRMNL_DOMAIN=emergent-atelier.example.com"
+  exit 1
+fi
 
 # CADDY_PROXY_SECRET must be pre-set in the environment or loaded from .env.
 # Generate with: openssl rand -hex 32

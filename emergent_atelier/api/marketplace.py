@@ -60,15 +60,17 @@ TOKEN_TTL_DAYS = 90
 
 
 def _is_valid_callback(url: str) -> bool:
+    """Validate the callback URL comes from an allowed TRMNL host.
+
+    Exact hostname matches only — subdomain matching is excluded to prevent
+    an open-redirect if TRMNL were to allow user-created subdomains.
+    """
     try:
         parsed = urlparse(url)
         return (
             parsed.scheme == "https"
             and bool(parsed.hostname)
-            and any(
-                parsed.hostname == h or parsed.hostname.endswith(f".{h}")
-                for h in _ALLOWED_REDIRECT_HOSTS
-            )
+            and parsed.hostname in _ALLOWED_REDIRECT_HOSTS
         )
     except Exception:
         return False
