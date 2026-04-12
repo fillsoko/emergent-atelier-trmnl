@@ -31,6 +31,7 @@ from slowapi.errors import RateLimitExceeded
 
 from emergent_atelier.canvas.coordinator import Coordinator
 from emergent_atelier.canvas.state import CanvasStateStore
+from emergent_atelier.api.csp import router as csp_router
 from emergent_atelier.api.limiter import limiter
 from emergent_atelier.api.marketplace import router as marketplace_router, validate_marketplace_config
 from emergent_atelier.api.votes import router as votes_router
@@ -108,8 +109,12 @@ def _require_dashboard_auth(request: Request) -> None:
 
 
 class ProxySecretMiddleware(BaseHTTPMiddleware):
+    # Paths that bypass the proxy-secret check because they receive direct
+    # browser-initiated requests (not routed through Caddy).
+    _PROXY_EXEMPT_PATHS: frozenset[str] = frozenset({"/api/csp-report"})
+
     async def dispatch(self, request: Request, call_next):
-        if _REQUIRE_PROXY_SECRET:
+        if _REQUIRE_PROXY_SECRET and request.url.path not in self._PROXY_EXEMPT_PATHS:
             incoming = request.headers.get("x-proxy-secret", "")
             if not _CADDY_PROXY_SECRET or not compare_digest(incoming, _CADDY_PROXY_SECRET):
                 return Response(status_code=403, content="Forbidden")
@@ -141,6 +146,7 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
+app.include_router(csp_router)
 app.include_router(marketplace_router)
 app.include_router(votes_router)
 
