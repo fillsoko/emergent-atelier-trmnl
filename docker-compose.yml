@@ -19,9 +19,9 @@ services:
       # https://trmnl.com/plugins/my/new
       - TRMNL_CLIENT_ID=${TRMNL_CLIENT_ID:-}
       - TRMNL_CLIENT_SECRET=${TRMNL_CLIENT_SECRET}
-      # Public base URL of this server (no trailing slash)
+      # Public base URL of this server (no trailing slash). REQUIRED.
       # e.g. https://emergent-atelier.yourdomain.com
-      - TRMNL_PUBLIC_URL=${TRMNL_PUBLIC_URL:-https://your-domain.example.com}
+      - TRMNL_PUBLIC_URL=${TRMNL_PUBLIC_URL:?TRMNL_PUBLIC_URL is required. Set to your public server URL, e.g. https://emergent-atelier.yourdomain.com}
       # CORS allowed origins (comma-separated). Override for staging/dev environments.
       # Production default: emergentatelier.dev only
       - CORS_ORIGINS=${CORS_ORIGINS:-https://emergentatelier.dev,https://www.emergentatelier.dev}

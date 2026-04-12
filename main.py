@@ -57,28 +57,49 @@ def _check_required_env() -> None:
         logger.error("FATAL: Missing required environment variables: %s", missing)
         sys.exit(1)
 
-    # Proxy secret enforcement — when REQUIRE_PROXY_SECRET=true, CADDY_PROXY_SECRET
-    # must also be set, otherwise every request would be rejected with 403.
-    if os.getenv("REQUIRE_PROXY_SECRET", "true").lower() == "true":
+    # Proxy secret enforcement — when REQUIRE_PROXY_SECRET=true (the production default),
+    # CADDY_PROXY_SECRET must also be set, otherwise every request would be rejected
+    # with 403.  When false, emit a prominent warning so a misconfigured production
+    # deployment is caught immediately (SOK-334).
+    require_proxy = os.getenv("REQUIRE_PROXY_SECRET", "true").lower() == "true"
+    if require_proxy:
         if not os.getenv("CADDY_PROXY_SECRET"):
             logger.error(
                 "FATAL: REQUIRE_PROXY_SECRET=true but CADDY_PROXY_SECRET is not set. "
                 "Generate with: openssl rand -hex 32 and configure in Caddy."
             )
             sys.exit(1)
+    else:
+        logger.warning(
+            "REQUIRE_PROXY_SECRET=false — proxy-secret middleware is DISABLED. "
+            "All endpoints are accessible without authentication. "
+            "This setting is for local development only and MUST NOT be used in production."
+        )
 
-    # Dashboard auth — strongly recommended in production (SOK-232).
+    # Dashboard auth — required in all environments (SOK-334).
     # Without DASHBOARD_SECRET, /api/status, /api/history, /api/agents, and the
-    # dashboard are accessible to anyone who reaches the app (bypassing the proxy
-    # secret guard for read endpoints). Warn loudly in production mode.
+    # dashboard are unprotected.  Warn regardless of REQUIRE_PROXY_SECRET so that a
+    # dev-mode misconfiguration in production is caught at startup.
     if not os.getenv("DASHBOARD_SECRET"):
-        if os.getenv("REQUIRE_PROXY_SECRET", "true").lower() == "true":
-            logger.warning(
-                "DASHBOARD_SECRET is not set. Internal API endpoints (/api/status, "
-                "/api/history, /api/agents) and the dashboard are unprotected beyond "
-                "the proxy secret. Set DASHBOARD_SECRET in production: "
-                "openssl rand -hex 32"
-            )
+        logger.warning(
+            "DASHBOARD_SECRET is not set. Internal API endpoints (/api/status, "
+            "/api/history, /api/agents) and the dashboard are unprotected. "
+            "Set DASHBOARD_SECRET in production: openssl rand -hex 32"
+        )
+
+    # Public URL validation — TRMNL_PUBLIC_URL defaults to localhost when unset,
+    # which makes all TRMNL device callbacks and image URLs unreachable in production
+    # (SOK-335).  Raise a hard error if the URL still points to localhost while
+    # running in production mode (REQUIRE_PROXY_SECRET=true).
+    public_url = os.getenv("TRMNL_PUBLIC_URL", "")
+    if require_proxy and (not public_url or "localhost" in public_url or "127.0.0.1" in public_url):
+        logger.error(
+            "FATAL: TRMNL_PUBLIC_URL is %s in production mode (REQUIRE_PROXY_SECRET=true). "
+            "Set TRMNL_PUBLIC_URL to your public server address, "
+            "e.g. https://emergent-atelier.example.com",
+            repr(public_url) if public_url else "unset",
+        )
+        sys.exit(1)
 
     # Marketplace credentials — only needed for the TRMNL OAuth install flow.
     # The engine can start and serve /image.png without them; the marketplace
