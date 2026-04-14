@@ -26,3 +26,6 @@ jobs:
 
       - name: Audit dependencies (fail on high/critical)
         run: pip-audit -r requirements-lock.txt --fail-on-severity high
+
+      - name: Audit dependencies (report medium, non-blocking)
+        run: pip-audit -r requirements-lock.txt --fail-on-severity medium || true
